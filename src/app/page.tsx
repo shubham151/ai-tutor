@@ -1,103 +1,150 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import Link from 'next/link'
+import { motion } from 'framer-motion' // normal import works now
+import Button from '@/components/ui/Button'
+import Card, { CardContent } from '@/components/ui/Card'
+import { BookOpen, MessageSquare, Mic, Zap } from 'lucide-react'
+
+export default function HomePage() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen bg-gradient-to-br from-macos-background via-blue-50 to-macos-background">
+      {/* Navigation */}
+      <nav className="backdrop-blur-macos bg-white/80 border-b border-white/20 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-macos-accent to-blue-600 rounded-lg"></div>
+              <h1 className="text-xl font-semibold text-macos-text font-sf">StudyFetch</h1>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Link href="/login">
+                <Button variant="ghost" className="w-full h-full block">
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button className="w-full h-full block">Get Started</Button>
+              </Link>
+            </div>
+          </div>
         </div>
+      </nav>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Hero Section */}
+        <div className="text-center py-20">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="space-y-6"
+          >
+            <h2 className="text-5xl sm:text-6xl font-bold text-macos-text font-sf leading-tight">
+              Learn Smarter with
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-macos-accent to-blue-600">
+                {' '}
+                AI
+              </span>
+            </h2>
+            <p className="max-w-2xl mx-auto text-xl text-macos-textSecondary font-sf">
+              Upload your PDF documents and chat with our AI tutor for interactive, personalized
+              learning experiences that adapt to your needs.
+            </p>
+            <div className="flex justify-center">
+              <Link href="/login">
+                <Button size="lg" className="text-lg px-8 py-4 w-full">
+                  Start Learning
+                </Button>
+              </Link>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Features Grid */}
+        <div className="py-20">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.6 }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+          >
+            {[
+              {
+                icon: BookOpen,
+                title: 'Interactive Reading',
+                description: 'Chat with your PDFs and get instant answers to your questions.',
+                color: 'from-blue-500 to-blue-600',
+              },
+              {
+                icon: MessageSquare,
+                title: 'Smart Highlighting',
+                description: 'AI automatically highlights relevant sections as you learn.',
+                color: 'from-green-500 to-green-600',
+              },
+              {
+                icon: Mic,
+                title: 'Voice Support',
+                description: 'Use voice commands for natural, hands-free interaction.',
+                color: 'from-purple-500 to-purple-600',
+              },
+              {
+                icon: Zap,
+                title: 'Instant Insights',
+                description: 'Get immediate explanations and contextual information.',
+                color: 'from-orange-500 to-orange-600',
+              },
+            ].map((feature, index) => (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 + index * 0.1, duration: 0.5 }}
+              >
+                <Card className="glass border-white/20 hover:shadow-macos-lg transition-all duration-300 h-full">
+                  <CardContent className="p-6 text-center space-y-4">
+                    <div
+                      className={`w-12 h-12 mx-auto rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center`}
+                    >
+                      <feature.icon className="w-6 h-6 text-white" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-macos-text font-sf">
+                      {feature.title}
+                    </h3>
+                    <p className="text-sm text-macos-textSecondary font-sf">
+                      {feature.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+
+        {/* CTA Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8, duration: 0.6 }}
+          className="text-center py-20"
+        >
+          <Card className="glass border-white/20 max-w-2xl mx-auto">
+            <CardContent className="p-12">
+              <h3 className="text-3xl font-bold text-macos-text font-sf mb-4">
+                Ready to transform your learning?
+              </h3>
+              <p className="text-macos-textSecondary font-sf mb-8">
+                Join thousands of students already learning smarter with AI-powered tutoring.
+              </p>
+              <Link href="/login">
+                <Button size="lg" className="text-lg px-8 py-4 w-full">
+                  Get Started Free
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </motion.div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
-  );
+  )
 }
