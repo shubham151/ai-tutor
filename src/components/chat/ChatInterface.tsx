@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Send, Mic, MicOff, Loader2, Bot, User, Volume2 } from 'lucide-react'
+import { Send, Mic, MicOff, Loader2, Bot, User } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Alert from '@/components/ui/Alert'
 
@@ -41,7 +41,7 @@ const ChatInterface = ({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [isRecording, setIsRecording] = useState(false)
-  const [isPlaying, setIsPlaying] = useState(false)
+  // const [isPlaying, setIsPlaying] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -268,7 +268,7 @@ const ChatInterface = ({
                 onClick={() => sendMessage('What is this document about?')}
                 className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm hover:bg-blue-200 transition-colors"
               >
-                What's this about?
+                {`What's this about`}
               </button>
               <button
                 onClick={() => sendMessage('Summarize the main points')}
@@ -408,7 +408,7 @@ const ChatInterface = ({
 
         {/* Tips */}
         <div className="mt-3 text-xs text-gray-500">
-          <p>💡 Try asking: "Explain this concept on page 3" or "What are the key takeaways?"</p>
+          <p>{`💡 Try asking: "Explain this concept on page 3" or "What are the key takeaways?"`}</p>
         </div>
       </div>
     </div>

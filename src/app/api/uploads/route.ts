@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/middleware'
 import { PrismaClient } from '@prisma/client'
-import { writeFile, mkdir, readFile } from 'fs/promises'
+import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import * as pdfjs from 'pdfjs-dist'
-pdfjs.GlobalWorkerOptions.workerSrc = require('pdfjs-dist/build/pdf.worker.js')
+// @ts-expect-error: No TypeScript declarations for pdf.worker.js
+import * as workerSrc from 'pdfjs-dist/build/pdf.worker.js'
+;(pdfjs as any).GlobalWorkerOptions.workerSrc = workerSrc as any
 
 const prisma = new PrismaClient()
 
-/**
- * Extracts text and its bounding box from a PDF buffer using pdf.js.
- * @param buffer - The PDF file buffer.
- * @returns An object containing the extracted text and page count.
- */
 async function extractTextFromPdfjs(buffer: Buffer) {
   let extractedText = ''
   let pageCount = 0

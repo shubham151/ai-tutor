@@ -120,7 +120,7 @@ const RecentActivity = ({ documents, className = '' }: RecentActivityProps) => {
                   {/* Activity Details */}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{activity.title}</p>
-                    {activity.subtitle && (
+                    {activity.type === 'chat' && activity.subtitle && (
                       <p className="text-xs text-gray-500 truncate">{activity.subtitle}</p>
                     )}
                     <p className="text-xs text-gray-400 mt-1">
@@ -172,7 +172,7 @@ const RecentActivity = ({ documents, className = '' }: RecentActivityProps) => {
           <div className="flex items-start gap-2">
             <div className="w-1.5 h-1.5 bg-blue-500 rounded-full flex-shrink-0 mt-2"></div>
             <p className="text-gray-600">
-              Ask specific questions about concepts you don't understand
+              {`Ask specific questions about concepts you don't understand`}
             </p>
           </div>
           <div className="flex items-start gap-2">

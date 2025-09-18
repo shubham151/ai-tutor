@@ -3,7 +3,6 @@ import { withAuth } from '@/middleware'
 import { PrismaClient } from '@prisma/client'
 import { google } from '@ai-sdk/google'
 import { generateText } from 'ai'
-import { z } from 'zod'
 
 const prisma = new PrismaClient()
 
@@ -97,7 +96,7 @@ Current user question: ${message}`
 
       // Extract page references and create annotations
       let pageReference: number | undefined
-      let annotations: any[] = []
+      const annotations: any[] = []
 
       // Simple logic to extract page numbers and create highlights
       const pageMatch = result.text.match(/page (\d+)/i)

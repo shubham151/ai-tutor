@@ -42,9 +42,7 @@ const LoginForm = ({ onSubmit, isLoading = false, error, success }: LoginFormPro
 
     try {
       await onSubmit(email)
-    } catch (err) {
-      // Error handling is done by parent component
-    }
+    } catch {}
   }
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {

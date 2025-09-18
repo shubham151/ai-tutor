@@ -5,7 +5,7 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 // GET /api/documents - Get all documents for user
-export const GET = withAuth(async (userId: string, request: NextRequest) => {
+export const GET = withAuth(async (userId: string) => {
   try {
     const documents = await prisma.document.findMany({
       where: { userId },
@@ -45,7 +45,7 @@ export const DELETE = withAuth(async (userId: string, request: NextRequest) => {
     const result = await prisma.document.deleteMany({
       where: {
         id: { in: ids },
-        userId: userId, // Ensure user owns the documents
+        userId: userId,
       },
     })
 

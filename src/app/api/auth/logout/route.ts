@@ -1,9 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
-    // Create a response and clear the refresh token cookie
     const response = NextResponse.json({ message: 'Logged out successfully' }, { status: 200 })
 
     // Clear the refresh token cookie
@@ -12,7 +10,7 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 0, // This expires the cookie immediately
+      maxAge: 0,
     })
 
     return response
