@@ -1,11 +1,12 @@
-// components/auth/LoginForm.tsx
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import { Mail, ArrowRight } from 'lucide-react'
+import { useLoginForm } from '@/hooks/auth-hooks'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Alert from '@/components/ui/Alert'
+import UIUtils from '@/lib/utils/AuthUtil'
 
 export interface LoginFormProps {
   onSubmit: (email: string) => Promise<void>
@@ -14,45 +15,18 @@ export interface LoginFormProps {
   success?: string
 }
 
-const LoginForm = ({ onSubmit, isLoading = false, error, success }: LoginFormProps) => {
-  const [email, setEmail] = useState('')
-  const [emailError, setEmailError] = useState('')
-
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    return emailRegex.test(email)
-  }
+function LoginForm({ onSubmit, isLoading = false, error, success }: LoginFormProps) {
+  const { email, errors, handleEmailChange, validateAndGetEmail } = useLoginForm()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Reset errors
-    setEmailError('')
-
-    // Validate email
-    if (!email) {
-      setEmailError('Email is required')
-      return
-    }
-
-    if (!validateEmail(email)) {
-      setEmailError('Please enter a valid email address')
-      return
-    }
+    const { isValid, email: validatedEmail } = validateAndGetEmail()
+    if (!isValid) return
 
     try {
-      await onSubmit(email)
+      await onSubmit(validatedEmail)
     } catch {}
-  }
-
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setEmail(value)
-
-    // Clear error when user starts typing
-    if (emailError) {
-      setEmailError('')
-    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -61,25 +35,23 @@ const LoginForm = ({ onSubmit, isLoading = false, error, success }: LoginFormPro
     }
   }
 
+  const isSubmitDisabled = UIUtils.isSubmitDisabled(email, !!errors.email, isLoading)
+
   return (
     <div className="space-y-6">
-      {/* Success Message */}
       {success && <Alert variant="success">{success}</Alert>}
-
-      {/* Error Message */}
       {error && <Alert variant="error">{error}</Alert>}
 
-      {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
         <Input
           label="Email Address"
           type="email"
           placeholder="Enter your email"
           value={email}
-          onChange={handleEmailChange}
+          onChange={(e) => handleEmailChange(e.target.value)}
           onKeyDown={handleKeyPress}
           leftIcon={<Mail className="w-5 h-5" />}
-          error={emailError}
+          error={errors.email}
           disabled={isLoading}
           autoComplete="email"
           autoFocus
@@ -91,7 +63,7 @@ const LoginForm = ({ onSubmit, isLoading = false, error, success }: LoginFormPro
           variant="primary"
           size="lg"
           isLoading={isLoading}
-          disabled={!email || !!emailError}
+          disabled={isSubmitDisabled}
           rightIcon={<ArrowRight className="w-4 h-4" />}
           className="w-full"
         >

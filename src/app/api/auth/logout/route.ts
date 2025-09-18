@@ -1,21 +1,19 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import ApiUtils from '@/lib/utils/api-utils'
 
-export async function POST() {
-  try {
-    const response = NextResponse.json({ message: 'Logged out successfully' }, { status: 200 })
+function createLogoutResponse(): NextResponse {
+  const response = ApiUtils.createSuccessResponse({
+    message: 'Logged out successfully',
+  })
 
-    // Clear the refresh token cookie
-    response.cookies.set('refresh-token', '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 0,
-    })
+  ApiUtils.clearRefreshTokenCookie(response)
+  return response
+}
 
-    return response
-  } catch (error) {
-    console.error('Logout API error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
+async function handleLogoutRequest(): Promise<NextResponse> {
+  return createLogoutResponse()
+}
+
+export async function POST(request: NextRequest) {
+  return ApiUtils.handleApiRequest(request, () => handleLogoutRequest())
 }

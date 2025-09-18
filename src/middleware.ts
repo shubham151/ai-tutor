@@ -1,170 +1,148 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Auth } from '@/lib/services/auth'
+import BackendAuthService from '@/lib/core/auth-service'
 
-// Types for middleware
-interface AuthenticatedRequest extends NextRequest {
-  userId?: string
-}
-
-// Helper functions
-const getAuthHeader = (request: NextRequest): string | null => {
-  // First try Authorization header
+function getAccessToken(request: NextRequest): string | null {
   const authHeader = request.headers.get('authorization')
   if (authHeader?.startsWith('Bearer ')) {
     return authHeader.substring(7)
   }
 
-  // Fallback to cookie
   return request.cookies.get('access-token')?.value || null
 }
 
-const getRefreshTokenFromCookies = (request: NextRequest): string | null => {
+function getRefreshToken(request: NextRequest): string | null {
   return request.cookies.get('refresh-token')?.value || null
 }
 
-const createAuthResponse = (response: NextResponse, accessToken: string): NextResponse => {
-  response.headers.set('authorization', `Bearer ${accessToken}`)
-  return response
-}
-
-const createUnauthorizedResponse = (): NextResponse => {
+function createUnauthorizedResponse(): NextResponse {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 }
 
-// Main middleware function
+function setCookieOptions(isProduction: boolean) {
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'lax' as const,
+  }
+}
+
+function setAuthCookies(response: NextResponse, accessToken: string, refreshToken?: string): void {
+  const isProduction = process.env.NODE_ENV === 'production'
+  const cookieOptions = setCookieOptions(isProduction)
+
+  response.cookies.set('access-token', accessToken, {
+    ...cookieOptions,
+    maxAge: 15 * 60, // 15 minutes
+  })
+
+  if (refreshToken) {
+    response.cookies.set('refresh-token', refreshToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+    })
+  }
+}
+
+function createAuthenticatedResponse(userId: string, accessToken?: string): NextResponse {
+  const response = NextResponse.next()
+  response.headers.set('x-user-id', userId)
+
+  if (accessToken) {
+    response.headers.set('authorization', `Bearer ${accessToken}`)
+  }
+
+  return response
+}
+
+async function handleTokenRefresh(refreshToken: string): Promise<NextResponse | null> {
+  try {
+    const tokenResult = BackendAuthService.refreshTokens(refreshToken)
+
+    if (!tokenResult?.accessToken) {
+      return null
+    }
+
+    const isNewTokenValid = BackendAuthService.isValidToken(tokenResult.accessToken)
+    if (!isNewTokenValid) {
+      return null
+    }
+
+    const userId = BackendAuthService.getUserId(tokenResult.accessToken)
+    if (!userId) {
+      return null
+    }
+
+    const response = createAuthenticatedResponse(userId, tokenResult.accessToken)
+    setAuthCookies(response, tokenResult.accessToken, tokenResult.refreshToken)
+
+    return response
+  } catch (error) {
+    console.error('Token refresh error:', error)
+    return null
+  }
+}
+
+async function validateAccessToken(accessToken: string): Promise<NextResponse | null> {
+  try {
+    const isValid = BackendAuthService.isValidToken(accessToken)
+    if (!isValid) {
+      return null
+    }
+
+    const userId = BackendAuthService.getUserId(accessToken)
+    if (!userId) {
+      return null
+    }
+
+    return createAuthenticatedResponse(userId)
+  } catch (error) {
+    console.error('Token validation error:', error)
+    return null
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  console.log('🔍 Middleware triggered for:', pathname)
-
-  // Skip auth for public routes
-  const isPublic = Auth.isPublicRoute(pathname)
-  if (isPublic) {
-    console.log('✅ Public route, skipping auth:', pathname)
+  if (BackendAuthService.isPublicRoute(pathname)) {
     return NextResponse.next()
   }
 
-  console.log('🔒 Protected route, checking auth:', pathname)
+  const accessToken = getAccessToken(request)
+  const refreshToken = getRefreshToken(request)
 
-  // Get tokens from both Authorization header and cookies
-  const accessToken = getAuthHeader(request)
-  const refreshToken = getRefreshTokenFromCookies(request)
-
-  console.log('🔍 Middleware auth check:', {
-    pathname,
-    hasAccessToken: !!accessToken,
-    hasRefreshToken: !!refreshToken,
-    accessTokenPreview: accessToken ? `${accessToken.slice(0, 20)}...` : 'none',
-  })
-
-  // Check if access token is valid
+  // Try to validate access token first
   if (accessToken) {
-    console.log('🔍 Checking access token validity...')
-    console.log('🔍 Environment check:', {
-      hasAccessSecret: !!process.env.SECRET_ACCESS_TOKEN,
-      hasRefreshSecret: !!process.env.SECRET_REFRESH_TOKEN,
-    })
-
-    try {
-      const isValid = Auth.isValidToken(accessToken)
-      console.log('🔍 Token valid?', isValid)
-
-      if (isValid) {
-        const userId = Auth.getUserId(accessToken)
-        console.log('🔍 UserId from token:', userId)
-        if (userId) {
-          console.log('✅ Valid access token for user:', userId)
-          const response = NextResponse.next()
-          response.headers.set('x-user-id', userId)
-          return response
-        } else {
-          console.log('❌ Access token valid but no userId found')
-        }
-      } else {
-        console.log('❌ Access token invalid')
-      }
-    } catch (error) {
-      console.error('❌ Token validation error:', error)
+    const validationResult = await validateAccessToken(accessToken)
+    if (validationResult) {
+      return validationResult
     }
-  } else {
-    console.log('❌ No access token found')
   }
 
-  // Try to refresh token if we have a refresh token
+  // Try to refresh token if access token is invalid
   if (refreshToken) {
-    try {
-      console.log('🔄 Attempting token refresh with token:', refreshToken.slice(0, 20) + '...')
-      const tokenResult = Auth.refreshAccessToken(refreshToken)
-      console.log('🔍 Refresh result:', tokenResult ? 'success' : 'failed', tokenResult)
-
-      if (tokenResult?.accessToken) {
-        const isNewTokenValid = Auth.isValidToken(tokenResult.accessToken)
-        console.log('🔍 New token valid?', isNewTokenValid)
-
-        if (isNewTokenValid) {
-          const userId = Auth.getUserId(tokenResult.accessToken)
-          console.log('🔍 UserId from new token:', userId)
-          if (userId) {
-            console.log('✅ Token refreshed for user:', userId)
-            const response = NextResponse.next()
-            response.headers.set('x-user-id', userId)
-            response.headers.set('authorization', `Bearer ${tokenResult.accessToken}`)
-
-            // Set new tokens in cookies for future requests
-            response.cookies.set('access-token', tokenResult.accessToken, {
-              httpOnly: true,
-              secure: process.env.NODE_ENV === 'production',
-              sameSite: 'lax',
-              maxAge: 15 * 60, // 15 minutes
-            })
-
-            if (tokenResult.refreshToken) {
-              response.cookies.set('refresh-token', tokenResult.refreshToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax',
-                maxAge: 7 * 24 * 60 * 60, // 7 days
-              })
-            }
-
-            return response
-          }
-        }
-      } else {
-        console.log('❌ Token refresh failed - no access token in result')
-      }
-    } catch (error) {
-      console.error('❌ Token refresh error details:', error)
+    const refreshResult = await handleTokenRefresh(refreshToken)
+    if (refreshResult) {
+      return refreshResult
     }
-  } else {
-    console.log('❌ No refresh token available')
   }
 
-  console.log('🚫 No valid authentication found, returning 401')
   return createUnauthorizedResponse()
 }
 
-// Middleware config
 export const config = {
   matcher: [
-    // Match all request paths except for the ones starting with:
-    // - api/auth/login, api/auth/verify, api/auth/refresh (auth endpoints)
-    // - _next/static (static files)
-    // - _next/image (image optimization files)
-    // - favicon.ico (favicon file)
     '/((?!api/auth/login|api/auth/verify|api/auth/refresh|_next/static|_next/image|favicon.ico).*)',
   ],
 }
 
-// Utility function to extract user ID from request in API routes
-export const getUserIdFromRequest = (request: NextRequest): string | null => {
+export function getUserIdFromRequest(request: NextRequest): string | null {
   return request.headers.get('x-user-id') || null
 }
 
-// Higher-order function for protecting API routes
-export const withAuth = <T extends any[]>(
+export function withAuth<T extends any[]>(
   handler: (userId: string, request: NextRequest, ...args: T) => Promise<NextResponse>
-) => {
+) {
   return async (request: NextRequest, ...args: T): Promise<NextResponse> => {
     const userId = getUserIdFromRequest(request)
 
@@ -173,7 +151,6 @@ export const withAuth = <T extends any[]>(
     }
 
     try {
-      // FIXED: Pass request as second parameter after userId
       return await handler(userId, request, ...args)
     } catch (error) {
       console.error('Auth handler error:', error)

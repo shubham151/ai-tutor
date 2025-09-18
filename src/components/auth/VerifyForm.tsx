@@ -1,9 +1,11 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useEffect } from 'react'
+import { useVerifyForm } from '@/hooks/auth-hooks'
 import Button from '@/components/ui/Button'
 import OTPInput from '@/components/ui/OTPInput'
 import Alert from '@/components/ui/Alert'
+import AuthUtils from '@/lib/utils/AuthUtil'
 
 export interface VerifyFormProps {
   email: string
@@ -15,7 +17,7 @@ export interface VerifyFormProps {
   success?: string
 }
 
-const VerifyForm = ({
+function VerifyForm({
   email,
   onSubmit,
   onResend,
@@ -23,19 +25,20 @@ const VerifyForm = ({
   isLoading = false,
   error,
   success,
-}: VerifyFormProps) => {
-  const [code, setCode] = useState('')
-  const [resendCooldown, setResendCooldown] = useState(0)
+}: VerifyFormProps) {
+  const { code, resendCooldown, setCode, validateCode, startResendCooldown, decrementCooldown } =
+    useVerifyForm()
 
   useEffect(() => {
     if (resendCooldown <= 0) return
-    const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000)
+    const timer = setTimeout(decrementCooldown, 1000)
     return () => clearTimeout(timer)
-  }, [resendCooldown])
+  }, [resendCooldown, decrementCooldown])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (code.length !== 6 || isLoading) return
+    if (!AuthUtils.isCodeComplete(code) || isLoading) return
+
     try {
       await onSubmit(code)
     } catch {
@@ -45,9 +48,10 @@ const VerifyForm = ({
 
   const handleResend = async () => {
     if (resendCooldown > 0 || isLoading) return
+
     try {
       await onResend()
-      setResendCooldown(60)
+      startResendCooldown()
     } catch {
       // Parent handles error
     }
@@ -55,22 +59,20 @@ const VerifyForm = ({
 
   const handleCodeChange = (newCode: string) => {
     setCode(newCode)
-    if (newCode.length === 6 && !isLoading) {
+    if (AuthUtils.isCodeComplete(newCode) && !isLoading) {
       onSubmit(newCode).catch(() => {})
     }
   }
 
-  const maskEmail = (email: string) => {
-    const [local, domain] = email.split('@')
-    if (local.length <= 2) return email
-    return `${local[0]}${'*'.repeat(local.length - 2)}${local[local.length - 1]}@${domain}`
-  }
+  const maskedEmail = AuthUtils.maskEmail(email)
+  const resendText = AuthUtils.formatResendText(resendCooldown)
+  const isCodeValid = AuthUtils.isCodeComplete(code)
 
   return (
     <div className="space-y-6">
       <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
         <p className="text-sm text-blue-700">
-          We sent a 6-digit code to <span className="font-medium">{maskEmail(email)}</span>
+          We sent a 6-digit code to <span className="font-medium">{maskedEmail}</span>
         </p>
       </div>
 
@@ -90,7 +92,7 @@ const VerifyForm = ({
           variant="primary"
           size="lg"
           isLoading={isLoading}
-          disabled={code.length !== 6 || isLoading}
+          disabled={!isCodeValid || isLoading}
           className="w-full"
         >
           Verify & Sign In
@@ -108,7 +110,7 @@ const VerifyForm = ({
           onClick={handleResend}
           disabled={isLoading || resendCooldown > 0}
         >
-          {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
+          {resendText}
         </Button>
       </div>
     </div>

@@ -1,28 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { Auth } from '@/lib/services/auth'
+import { NextRequest } from 'next/server'
+import BackendAuthService from '@/lib/core/auth-service'
+import ApiUtils from '@/lib/utils/api-utils'
 import { loginSchema } from '@/lib/validations/auth'
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json()
+async function handleLoginRequest(request: NextRequest) {
+  const body = await ApiUtils.parseRequestBody(request)
+  const { email } = ApiUtils.validateRequestBody(loginSchema, body)
 
-    // Validate input
-    const validation = loginSchema.safeParse(body)
-    if (!validation.success) {
-      return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
-    }
+  const result = await BackendAuthService.login(email)
 
-    const { email } = validation.data
-
-    const result = await Auth.login(email)
-
-    if (result.error) {
-      return NextResponse.json({ error: result.error }, { status: 400 })
-    }
-
-    return NextResponse.json({ message: 'Login code sent to your email' }, { status: 200 })
-  } catch (error) {
-    console.error('Login API error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  if (result.error) {
+    ApiUtils.throwApiError(result.error, 400)
   }
+
+  return { message: 'Login code sent to your email' }
+}
+
+export async function POST(request: NextRequest) {
+  return ApiUtils.handleApiRequest(request, () => handleLoginRequest(request))
 }

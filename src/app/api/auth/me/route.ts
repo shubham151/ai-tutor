@@ -1,37 +1,37 @@
-// app/api/auth/me/route.ts
-import { NextRequest, NextResponse } from 'next/server'
-import { User } from '@/lib/services/user'
-import { getUserIdFromRequest } from '@/middleware'
+import { NextRequest } from 'next/server'
+import UserService from '@/lib/core/user-service'
+import ApiUtils from '@/lib/utils/api-utils'
+
+function validateUserId(userId: string | null): string {
+  if (!userId) {
+    ApiUtils.throwApiError('Unauthorized', 401)
+  }
+  return userId!
+}
+
+function createUserResponse(user: any) {
+  return {
+    id: user.id,
+    email: user.email,
+    emailConfirmed: !!user.emailConfirmedAt,
+  }
+}
+
+async function handleMeRequest(request: NextRequest) {
+  const userId = ApiUtils.getUserIdFromHeaders(request)
+  const validatedUserId = validateUserId(userId)
+
+  const user = await UserService.getById(validatedUserId)
+
+  if (!user) {
+    ApiUtils.throwApiError('User not found', 404)
+  }
+
+  return {
+    user: createUserResponse(user),
+  }
+}
 
 export async function GET(request: NextRequest) {
-  try {
-    const userId = getUserIdFromRequest(request)
-
-    console.log('🔍 /api/auth/me - userId from middleware:', userId)
-
-    if (!userId) {
-      console.log('❌ No userId found in request headers')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const user = await User.getById(userId)
-
-    if (!user) {
-      console.log('❌ User not found:', userId)
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    console.log('✅ User found:', { id: user.id, email: user.email })
-
-    return NextResponse.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        emailConfirmed: !!user.emailConfirmedAt,
-      },
-    })
-  } catch (error) {
-    console.error('❌ /api/auth/me error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
+  return ApiUtils.handleApiRequest(request, () => handleMeRequest(request))
 }

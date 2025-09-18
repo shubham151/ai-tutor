@@ -1,43 +1,60 @@
-// app/api/auth/refresh/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { Auth } from '@/lib/services/auth'
+import BackendAuthService from '@/lib/core/auth-service'
+import ApiUtils from '@/lib/utils/api-utils'
+
+function validateRefreshToken(refreshToken: string | null): string {
+  if (!refreshToken) {
+    ApiUtils.throwApiError('No refresh token provided', 401)
+  }
+  return refreshToken!
+}
+
+function handleInvalidToken(): NextResponse {
+  const response = ApiUtils.createErrorResponse('Invalid refresh token', 401)
+  ApiUtils.clearRefreshTokenCookie(response)
+  return response
+}
+
+async function handleRefreshRequest(request: NextRequest) {
+  const refreshToken = ApiUtils.getRefreshTokenFromCookies(request)
+  const validatedToken = validateRefreshToken(refreshToken)
+
+  const tokenResult = BackendAuthService.refreshTokens(validatedToken)
+
+  if (!tokenResult) {
+    return handleInvalidToken()
+  }
+
+  return {
+    accessToken: tokenResult.accessToken,
+    refreshToken: tokenResult.refreshToken,
+  }
+}
 
 export async function POST(request: NextRequest) {
-  try {
-    const refreshToken = request.cookies.get('refresh-token')?.value
+  return ApiUtils.handleApiRequest(request, async () => {
+    const refreshToken = ApiUtils.getRefreshTokenFromCookies(request)
+    const validatedToken = validateRefreshToken(refreshToken)
 
-    if (!refreshToken) {
-      return NextResponse.json({ error: 'No refresh token provided' }, { status: 401 })
-    }
-
-    const tokenResult = Auth.refreshAccessToken(refreshToken)
+    const tokenResult = BackendAuthService.refreshTokens(validatedToken)
 
     if (!tokenResult) {
-      // Clear invalid refresh token
-      const response = NextResponse.json({ error: 'Invalid refresh token' }, { status: 401 })
-      response.cookies.delete('refresh-token')
-      return response
+      const response = ApiUtils.createErrorResponse('Invalid refresh token', 401)
+      ApiUtils.clearRefreshTokenCookie(response)
+      throw response
     }
 
-    const response = NextResponse.json({
+    const result = {
       accessToken: tokenResult.accessToken,
       refreshToken: tokenResult.refreshToken,
-    })
+    }
 
-    // Set new refresh token in cookie
+    const response = ApiUtils.createSuccessResponse(result)
+
     if (tokenResult.refreshToken) {
-      response.cookies.set('refresh-token', tokenResult.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60, // 7 days
-        path: '/',
-      })
+      ApiUtils.setRefreshTokenCookie(response, tokenResult.refreshToken)
     }
 
     return response
-  } catch (error) {
-    console.error('Refresh token error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
+  })
 }
