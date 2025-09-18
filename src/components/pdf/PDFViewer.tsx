@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, Download } from '
 import Button from '@/components/ui/Button'
 
 // Import PDF.js at module level instead of dynamic import
-import * as pdfjsLib from 'pdfjs-dist'
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf'
 
 // Set worker source immediately
 if (typeof window !== 'undefined') {

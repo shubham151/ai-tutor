@@ -54,7 +54,8 @@ function verifyRefreshToken(token: string): TokenPayload | null {
     const decoded = jwt.verify(token, getEnvVar('SECRET_REFRESH_TOKEN'))
     return isValidTokenPayload(decoded) ? decoded : null
   } catch (error) {
-    console.error('❌ Refresh token verification failed:', error.message)
+    const message = error instanceof Error ? error.message : String(error)
+    console.error('❌ Refresh token verification failed:', message)
     return null
   }
 }
@@ -174,7 +175,8 @@ function isValidTokenDebug(token: string): boolean {
 
     return isValid
   } catch (error) {
-    console.error('❌ Token validation failed:', error.message)
+    const message = error instanceof Error ? error.message : String(error)
+    console.error('❌ Token validation failed:', message)
     return false
   }
 }
@@ -230,7 +232,8 @@ function refreshAccessTokenDebug(
 
     return { accessToken: newAccessToken, refreshToken: newRefreshToken }
   } catch (error) {
-    console.error('❌ Refresh token failed:', error.message)
+    const message = error instanceof Error ? error.message : String(error)
+    console.error('❌ Refresh token failed:', message)
     return null
   }
 }

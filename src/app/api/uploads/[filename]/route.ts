@@ -1,4 +1,3 @@
-// src/app/api/uploads/[filename]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/middleware'
 import { PrismaClient } from '@prisma/client'
@@ -34,8 +33,16 @@ export const GET = withAuth(
       try {
         const fileBuffer = await readFile(filepath)
 
+        // Wrap the buffer in a ReadableStream to meet BodyInit requirements
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(fileBuffer)
+            controller.close()
+          },
+        })
+
         // Return the PDF with proper headers
-        return new NextResponse(fileBuffer, {
+        return new NextResponse(stream, {
           headers: {
             'Content-Type': 'application/pdf',
             'Content-Length': fileBuffer.length.toString(),

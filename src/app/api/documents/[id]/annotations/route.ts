@@ -20,7 +20,7 @@ export const GET = withAuth(
       }
 
       // For now, return empty array - in production, you'd have an annotations table
-      const annotations = []
+      const annotations: never[] = []
 
       return NextResponse.json({ annotations })
     } catch (error) {
