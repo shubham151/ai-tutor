@@ -12,7 +12,7 @@ export interface ProtectedRouteProps {
   fallback?: React.ReactNode
 }
 
-const ProtectedRoute = ({ children, redirectTo = '/auth', fallback }: ProtectedRouteProps) => {
+const ProtectedRoute = ({ children, redirectTo = '/login', fallback }: ProtectedRouteProps) => {
   const { isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
 

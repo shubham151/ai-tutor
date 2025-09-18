@@ -7,8 +7,8 @@ import AppLayout from '@/components/layout/AppLayout'
 import WelcomeSection from './WelcomeSection'
 import UploadArea from './UploadArea'
 import DocumentGrid from './DocumentGrid'
-// import QuickActions from './QuickActions'
-// import RecentActivity from './RecentActivity'
+import QuickActions from './QuickActions'
+import RecentActivity from './RecentActivity'
 import Alert from '@/components/ui/Alert'
 
 interface Document {
@@ -85,7 +85,7 @@ const DashboardContainer = () => {
       const formData = new FormData()
       formData.append('file', file)
 
-      const response = await fetch('/api/documents/upload', {
+      const response = await fetch('/api/uploads', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
@@ -118,6 +118,21 @@ const DashboardContainer = () => {
         uploadProgress: 0,
       })
     }
+  }
+
+  // Adapter function for DocumentGrid - converts single File to FileList
+  const handleSingleFileUpload = async (file: File) => {
+    // Create a FileList-like object
+    const fileList = {
+      0: file,
+      length: 1,
+      item: (index: number) => (index === 0 ? file : null),
+      [Symbol.iterator]: function* () {
+        yield file
+      },
+    } as FileList
+
+    await handleFileUpload(fileList)
   }
 
   const handleDocumentDelete = async (documentId: string) => {
@@ -162,11 +177,11 @@ const DashboardContainer = () => {
         />
 
         {/* Quick Actions */}
-        {/* <QuickActions
+        <QuickActions
           onNewDocument={() => document.getElementById('file-upload')?.click()}
           onViewTemplates={() => console.log('View templates')}
           onGetHelp={() => console.log('Get help')}
-        /> */}
+        />
 
         {/* Upload Area */}
         <UploadArea
@@ -184,13 +199,14 @@ const DashboardContainer = () => {
               isLoading={state.isLoading}
               onDocumentClick={(doc) => window.open(`/chat/${doc.id}`, '_blank')}
               onDocumentDelete={handleDocumentDelete}
+              onFileUpload={handleSingleFileUpload}
             />
           </div>
 
           {/* Sidebar */}
-          {/* <div className="space-y-6">
+          <div className="space-y-6">
             <RecentActivity documents={state.documents.slice(0, 5)} />
-          </div> */}
+          </div>
         </div>
       </div>
     </AppLayout>

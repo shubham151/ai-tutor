@@ -86,14 +86,14 @@ const verifyOtp = async (userId: string, code: string): Promise<boolean> => {
 const sendOtpEmail = async (email: string, code: string): Promise<boolean> => {
   try {
     const { error } = await resend.emails.send({
-      from: 'StudyFetch <noreply@spidermines.com>',
+      from: 'AI Tutor <noreply@spidermines.com>',
       to: [email],
-      subject: 'Your StudyFetch Login Code',
+      subject: 'Your AI Tutor Login Code',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333;">Your Login Code</h2>
           <p style="font-size: 16px; color: #666;">
-            Use the following code to complete your login to StudyFetch:
+            Use the following code to complete your login to AI Tutor:
           </p>
           <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
             <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #333;">

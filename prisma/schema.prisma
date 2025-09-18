@@ -15,7 +15,6 @@ model User {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  // Relations
   otpCodes     OtpCode[]
   documents    Document[]
   chatSessions ChatSession[]
@@ -30,28 +29,27 @@ model OtpCode {
   expiresAt DateTime
   createdAt DateTime @default(now())
 
-  // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("otp_codes")
 }
 
 model Document {
-  id          String   @id @default(cuid())
-  userId      String
-  filename    String
-  originalName String
-  fileUrl     String
-  mimeType    String
-  fileSize    Int
-  pageCount   Int?
+  id            String   @id @default(cuid())
+  userId        String
+  filename      String
+  originalName  String
+  fileUrl       String
+  mimeType      String
+  fileSize      Int
+  pageCount     Int?
   extractedText String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  // Relations
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   chatSessions ChatSession[]
+  annotations  Annotation[]
 
   @@map("documents")
 }
@@ -64,7 +62,6 @@ model ChatSession {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  // Relations
   user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   document Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
   messages Message[]
@@ -77,11 +74,28 @@ model Message {
   chatSessionId String
   role          String   // 'user' | 'assistant'
   content       String
-  metadata      Json?    // For storing annotations, page references, etc.
+  metadata      Json?    // For annotations, page references
   createdAt     DateTime @default(now())
 
-  // Relations
   chatSession ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
 
   @@map("messages")
+}
+
+model Annotation {
+  id         String  @id @default(cuid())
+  documentId String
+  pageNumber Int
+  x          Float
+  y          Float
+  width      Float
+  height     Float
+  type       String  // 'highlight' | 'circle' | 'arrow'
+  color      String
+  text       String?
+  createdAt  DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("annotations")
 }

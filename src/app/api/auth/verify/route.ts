@@ -1,40 +1,53 @@
+// app/api/auth/verify/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { Auth } from '@/lib/services/auth'
-import { verifySchema } from '@/lib/validations/auth'
+import { User } from '@/lib/services/user'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const { email, code } = await request.json()
 
-    const validation = verifySchema.safeParse(body)
-    if (!validation.success) {
-      return NextResponse.json({ error: 'Invalid email or code format' }, { status: 400 })
+    if (!email || !code) {
+      return NextResponse.json({ error: 'Email and code are required' }, { status: 400 })
     }
 
-    const { email, code } = validation.data
-
-    // ✅ Create a blank response so we can set cookies
-    const response = NextResponse.json({})
-
-    const result = await Auth.verify(email, code, response)
+    const result = await Auth.verify(email, code)
 
     if (result.error) {
       return NextResponse.json({ error: result.error }, { status: 400 })
     }
 
-    // ✅ Return a new NextResponse with cookies already set
-    return NextResponse.json(
-      {
-        message: 'Login successful',
-        accessToken: result.accessToken,
-      },
-      {
-        status: 200,
-        headers: response.headers, // preserve cookie headers set in Auth.verify
-      }
-    )
+    if (!result.accessToken || !result.refreshToken) {
+      return NextResponse.json({ error: 'Failed to generate tokens' }, { status: 500 })
+    }
+
+    // Get user data to return with tokens
+    const user = await User.findByEmail(email)
+
+    const response = NextResponse.json({
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      user: user
+        ? {
+            id: user.id,
+            email: user.email,
+            emailConfirmed: !!user.emailConfirmedAt,
+          }
+        : undefined,
+    })
+
+    // Set refresh token in httpOnly cookie
+    response.cookies.set('refresh-token', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+      path: '/',
+    })
+
+    return response
   } catch (error) {
-    console.error('Verify API error:', error)
+    console.error('Verify error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

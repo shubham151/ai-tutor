@@ -1,13 +1,10 @@
-// hooks/useAuth.ts
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 
-/* ---------- Types ---------- */
 interface User {
   id: string
   email: string
   emailConfirmed: boolean
-  createdAt: string
 }
 
 interface AuthState {
@@ -16,17 +13,6 @@ interface AuthState {
   isAuthenticated: boolean
 }
 
-interface LoginResponse {
-  success: boolean
-  error?: string
-}
-
-interface VerifyResponse {
-  success: boolean
-  error?: string
-}
-
-/* ---------- Token Manager ---------- */
 const TokenManager = {
   get(): string | null {
     if (typeof window === 'undefined') return null
@@ -63,7 +49,6 @@ const TokenManager = {
   },
 }
 
-/* ---------- API Client ---------- */
 const apiClient = {
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const token = TokenManager.get()
@@ -92,7 +77,6 @@ const apiClient = {
         })
       } else {
         TokenManager.remove()
-        window.location.href = '/auth'
         throw new Error('Authentication required')
       }
     }
@@ -113,7 +97,7 @@ const apiClient = {
       })
 
       if (response.ok) {
-        const data = (await response.json()) as { accessToken: string }
+        const data = (await response.json()) as { accessToken?: string; refreshToken?: string }
         if (data.accessToken) {
           TokenManager.set(data.accessToken)
           return true
@@ -139,7 +123,6 @@ const apiClient = {
   },
 }
 
-/* ---------- Main Hook ---------- */
 export const useAuth = () => {
   const [state, setState] = useState<AuthState>({
     user: null,
@@ -169,48 +152,73 @@ export const useAuth = () => {
     }
   }, [updateState])
 
-  const login = useCallback(async (email: string): Promise<LoginResponse> => {
-    try {
-      await apiClient.request('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email }),
-      })
-      return { success: true }
-    } catch (error) {
-      return { success: false, error: (error as Error).message }
-    }
-  }, [])
-
-  const verify = useCallback(
-    async (email: string, code: string): Promise<VerifyResponse> => {
+  const login = useCallback(
+    async (email: string): Promise<{ success: boolean; error?: string }> => {
       try {
-        const data = await apiClient.request<{ accessToken: string }>('/api/auth/verify', {
+        await apiClient.request('/api/auth/login', {
           method: 'POST',
-          body: JSON.stringify({ email, code }),
+          body: JSON.stringify({ email }),
         })
-
-        if (data.accessToken) {
-          TokenManager.set(data.accessToken)
-          await checkAuth()
-          return { success: true }
-        }
-
-        return { success: false, error: 'Invalid response' }
+        return { success: true }
       } catch (error) {
         return { success: false, error: (error as Error).message }
       }
     },
-    [checkAuth]
+    []
+  )
+
+  const verify = useCallback(
+    async (email: string, code: string): Promise<{ success: boolean; error?: string }> => {
+      try {
+        const response = await fetch('/api/auth/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, code }),
+        })
+
+        const data = await response.json()
+
+        if (response.ok && data.accessToken) {
+          TokenManager.set(data.accessToken)
+
+          // Set refresh token in cookie for future use
+          if (data.refreshToken) {
+            document.cookie = `refresh-token=${data.refreshToken}; path=/; max-age=${
+              7 * 24 * 60 * 60
+            }; samesite=lax${process.env.NODE_ENV === 'production' ? '; secure' : ''}`
+          }
+
+          // Update state immediately with user data if available
+          if (data.user) {
+            updateState({
+              user: data.user,
+              isAuthenticated: true,
+              isLoading: false,
+            })
+          } else {
+            // Otherwise re-check auth to get user data
+            await checkAuth()
+          }
+
+          return { success: true }
+        }
+
+        return { success: false, error: data.error || 'Verification failed' }
+      } catch (error) {
+        return { success: false, error: (error as Error).message }
+      }
+    },
+    [checkAuth, updateState]
   )
 
   const logout = useCallback(async () => {
     try {
       await apiClient.logout()
     } catch {
-      // ignore
+      // ignore errors during logout
     }
 
-    updateState({ user: null, isAuthenticated: false })
+    updateState({ user: null, isAuthenticated: false, isLoading: false })
     router.push('/auth')
   }, [updateState, router])
 
@@ -220,6 +228,7 @@ export const useAuth = () => {
     }
   }, [state.isLoading, state.isAuthenticated, router])
 
+  // Initialize auth check
   useEffect(() => {
     checkAuth()
   }, [checkAuth])

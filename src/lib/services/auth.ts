@@ -2,7 +2,6 @@ import jwt from 'jsonwebtoken'
 import type { TokenPayload, AuthResponse } from '@/types/auth'
 import { User } from './user'
 import { Otp } from './otp'
-import { NextResponse } from 'next/server'
 
 function getEnvVar(key: string): string {
   const value = process.env[key]
@@ -12,17 +11,9 @@ function getEnvVar(key: string): string {
 
 const PUBLIC_ROUTES = ['/api/auth/login', '/api/auth/verify', '/api/health'] as const
 
-const COOKIE_CONFIG = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
-  path: '/',
-  maxAge: 60 * 60 * 24 * 365,
-} as const
-
 const TOKEN_EXPIRY = {
-  access: '15m',
-  refresh: '2y',
+  access: '7d',
+  refresh: '7d',
 } as const
 
 function isPublicRoute(pathname: string): boolean {
@@ -62,21 +53,14 @@ function verifyRefreshToken(token: string): TokenPayload | null {
   try {
     const decoded = jwt.verify(token, getEnvVar('SECRET_REFRESH_TOKEN'))
     return isValidTokenPayload(decoded) ? decoded : null
-  } catch {
+  } catch (error) {
+    console.error('❌ Refresh token verification failed:', error.message)
     return null
   }
 }
 
 function isValidToken(token: string): boolean {
   return !!token && verifyAccessToken(token) !== null
-}
-
-function setCookie(res: NextResponse, token: string): void {
-  res.cookies.set('refresh-token', token, COOKIE_CONFIG)
-}
-
-function clearCookie(res: NextResponse): void {
-  res.cookies.delete({ name: 'refresh-token', ...COOKIE_CONFIG })
 }
 
 async function login(email: string): Promise<AuthResponse> {
@@ -124,36 +108,135 @@ async function verify(
   }
 }
 
-async function logout(res: NextResponse): Promise<{}> {
-  clearCookie(res)
-  return {}
-}
-
 function getUserId(token: string): string | null {
   const payload = verifyAccessToken(token)
   return payload?.id || null
 }
 
-function refreshAccessToken(refreshToken: string, res: NextResponse): string | null {
+function refreshAccessToken(
+  refreshToken: string
+): { accessToken?: string; refreshToken?: string } | null {
   const payload = verifyRefreshToken(refreshToken)
   if (!payload) {
-    res.cookies.delete({ name: 'refresh-token', ...COOKIE_CONFIG })
+    console.log('❌ Invalid refresh token payload, cannot generate new tokens.')
     return null
   }
 
   const newAccessToken = createAccessToken(payload.id)
   const newRefreshToken = createRefreshToken(payload.id)
 
-  res.cookies.set('refresh-token', newRefreshToken, COOKIE_CONFIG)
-  return newAccessToken
+  return { accessToken: newAccessToken, refreshToken: newRefreshToken }
 }
 
 export const Auth = {
   login,
   verify,
-  logout,
   getUserId,
   refreshAccessToken,
   isPublicRoute,
   isValidToken,
 } as const
+
+function isValidTokenDebug(token: string): boolean {
+  console.log('🔍 Token validation starting...')
+  console.log('🔍 Token preview:', token ? token.slice(0, 50) + '...' : 'null')
+
+  if (!token) {
+    console.log('❌ No token provided')
+    return false
+  }
+
+  try {
+    // Check token format
+    const parts = token.split('.')
+    if (parts.length !== 3) {
+      console.log('❌ Invalid JWT format - parts:', parts.length)
+      return false
+    }
+
+    // Decode payload to check expiry
+    const payload = JSON.parse(atob(parts[1]))
+    console.log('🔍 Token payload:', payload)
+    console.log('🔍 Token expires:', new Date(payload.exp * 1000))
+    console.log('🔍 Current time:', new Date())
+    console.log('🔍 Is expired?', payload.exp < Math.floor(Date.now() / 1000))
+
+    // Try to verify
+    const secret = getEnvVar('SECRET_ACCESS_TOKEN')
+    console.log('🔍 Secret exists:', !!secret)
+    console.log('🔍 Secret preview:', secret ? secret.slice(0, 10) + '...' : 'null')
+
+    const decoded = jwt.verify(token, secret)
+    console.log('✅ JWT verification successful:', decoded)
+
+    const isValid = isValidTokenPayload(decoded)
+    console.log('🔍 Payload valid?', isValid)
+
+    return isValid
+  } catch (error) {
+    console.error('❌ Token validation failed:', error.message)
+    return false
+  }
+}
+
+function refreshAccessTokenDebug(
+  refreshToken: string
+): { accessToken?: string; refreshToken?: string } | null {
+  console.log('🔍 Starting token refresh...')
+  console.log(
+    '🔍 Refresh token preview:',
+    refreshToken ? refreshToken.slice(0, 50) + '...' : 'null'
+  )
+
+  if (!refreshToken) {
+    console.log('❌ No refresh token provided')
+    return null
+  }
+
+  try {
+    // Check token format
+    const parts = refreshToken.split('.')
+    if (parts.length !== 3) {
+      console.log('❌ Invalid refresh token format - parts:', parts.length)
+      return null
+    }
+
+    // Decode payload to check expiry
+    const payload = JSON.parse(atob(parts[1]))
+    console.log('🔍 Refresh token payload:', payload)
+    console.log('🔍 Refresh token expires:', new Date(payload.exp * 1000))
+    console.log('🔍 Current time:', new Date())
+    console.log('🔍 Is refresh token expired?', payload.exp < Math.floor(Date.now() / 1000))
+
+    const secret = getEnvVar('SECRET_REFRESH_TOKEN')
+    console.log('🔍 Refresh secret exists:', !!secret)
+
+    const decoded = jwt.verify(refreshToken, secret)
+    console.log('✅ Refresh token verification successful:', decoded)
+
+    const isValidPayload = isValidTokenPayload(decoded)
+    console.log('🔍 Refresh payload valid?', isValidPayload)
+
+    if (!isValidPayload) {
+      console.log('❌ Invalid refresh token payload')
+      return null
+    }
+
+    const newAccessToken = createAccessToken(decoded.id)
+    const newRefreshToken = createRefreshToken(decoded.id)
+
+    console.log('✅ New tokens generated successfully')
+    console.log('🔍 New access token preview:', newAccessToken.slice(0, 50) + '...')
+
+    return { accessToken: newAccessToken, refreshToken: newRefreshToken }
+  } catch (error) {
+    console.error('❌ Refresh token failed:', error.message)
+    return null
+  }
+}
+
+// Export these debug versions
+export const AuthDebug = {
+  isValidToken: isValidTokenDebug,
+  refreshAccessToken: refreshAccessTokenDebug,
+}

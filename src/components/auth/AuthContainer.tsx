@@ -106,7 +106,7 @@ const AuthContainer = () => {
   const getLayoutProps = () => {
     if (state.step === 'login') {
       return {
-        title: 'Welcome to StudyFetch',
+        title: 'Welcome to AI Tutor',
         description: 'Enter your email to get started with AI-powered document tutoring',
       }
     } else {

@@ -15,7 +15,7 @@ export default function HomePage() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-gradient-to-br from-macos-accent to-blue-600 rounded-lg"></div>
-              <h1 className="text-xl font-semibold text-macos-text font-sf">StudyFetch</h1>
+              <h1 className="text-xl font-semibold text-macos-text font-sf">AI Tutor</h1>
             </div>
             <div className="flex items-center space-x-3">
               <Link href="/login">

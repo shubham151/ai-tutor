@@ -1,7 +1,7 @@
 // components/dashboard/DocumentGrid.tsx
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { FileText, MessageSquare, MoreVertical, Trash2, Download, Eye, Clock } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
@@ -21,6 +21,7 @@ interface DocumentGridProps {
   isLoading?: boolean
   onDocumentClick: (document: Document) => void
   onDocumentDelete: (documentId: string) => void
+  onFileUpload: (file: File) => void // Add this prop
   className?: string
 }
 
@@ -30,7 +31,11 @@ interface DocumentCardProps {
   onDocumentDelete: (documentId: string) => void
 }
 
-const DocumentCard = ({ document, onDocumentClick, onDocumentDelete }: DocumentCardProps) => {
+const DocumentCard: React.FC<DocumentCardProps> = ({
+  document,
+  onDocumentClick,
+  onDocumentDelete,
+}) => {
   const [showMenu, setShowMenu] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -78,12 +83,12 @@ const DocumentCard = ({ document, onDocumentClick, onDocumentDelete }: DocumentC
       const response = await fetch(document.fileUrl)
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
+      const a = window.document.createElement('a')
       a.href = url
       a.download = document.originalName
-      document.body.appendChild(a)
+      window.document.body.appendChild(a)
       a.click()
-      document.body.removeChild(a)
+      window.document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Download failed:', error)
@@ -196,13 +201,31 @@ const DocumentCard = ({ document, onDocumentClick, onDocumentDelete }: DocumentC
   )
 }
 
-const DocumentGrid = ({
+const DocumentGrid: React.FC<DocumentGridProps> = ({
   documents,
   isLoading = false,
   onDocumentClick,
   onDocumentDelete,
+  onFileUpload,
   className = '',
-}: DocumentGridProps) => {
+}) => {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && file.type === 'application/pdf') {
+      onFileUpload(file)
+    }
+    // Reset input value to allow selecting same file again
+    e.target.value = ''
+  }
+
+  const triggerFileSelect = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    fileInputRef.current?.click()
+  }
+
   if (isLoading) {
     return (
       <div className={`space-y-6 ${className}`}>
@@ -233,6 +256,15 @@ const DocumentGrid = ({
 
   return (
     <div className={`space-y-6 ${className}`}>
+      {/* Hidden file input - single instance with ref */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf"
+        onChange={handleFileSelect}
+        style={{ display: 'none' }}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-gray-900">
@@ -261,7 +293,7 @@ const DocumentGrid = ({
           <Button
             variant="primary"
             leftIcon={<FileText className="w-4 h-4" />}
-            onClick={() => document.getElementById('file-upload')?.click()}
+            onClick={triggerFileSelect}
           >
             Upload PDF
           </Button>

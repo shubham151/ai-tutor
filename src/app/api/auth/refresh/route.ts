@@ -1,27 +1,43 @@
+// app/api/auth/refresh/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { Auth } from '@/lib/services/auth'
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const refreshToken = cookieStore.get('refresh-token')?.value
+    const refreshToken = request.cookies.get('refresh-token')?.value
 
     if (!refreshToken) {
-      return NextResponse.json({ error: 'No refresh token found' }, { status: 401 })
+      return NextResponse.json({ error: 'No refresh token provided' }, { status: 401 })
     }
 
-    const newAccessToken = Auth.refreshAccessToken(refreshToken, cookieStore as any)
+    const tokenResult = Auth.refreshAccessToken(refreshToken)
 
-    if (!newAccessToken) {
-      return NextResponse.json({ error: 'Invalid refresh token' }, { status: 401 })
+    if (!tokenResult) {
+      // Clear invalid refresh token
+      const response = NextResponse.json({ error: 'Invalid refresh token' }, { status: 401 })
+      response.cookies.delete('refresh-token')
+      return response
     }
 
-    return NextResponse.json({
-      accessToken: newAccessToken,
+    const response = NextResponse.json({
+      accessToken: tokenResult.accessToken,
+      refreshToken: tokenResult.refreshToken,
     })
+
+    // Set new refresh token in cookie
+    if (tokenResult.refreshToken) {
+      response.cookies.set('refresh-token', tokenResult.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+        path: '/',
+      })
+    }
+
+    return response
   } catch (error) {
-    console.error('Refresh API error:', error)
+    console.error('Refresh token error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
