@@ -5,7 +5,7 @@ import { useAuthForm, useAuthStep, useAuthFlow } from '@/hooks/auth-hooks'
 import AuthLayout from './AuthLayout'
 import LoginForm from './LoginForm'
 import VerifyForm from './VerifyForm'
-import AuthUtils from '@/lib/utils/AuthUtil'
+import AuthUtils from '@/utils/AuthUtil'
 
 function AuthContainer() {
   const authForm = useAuthForm()

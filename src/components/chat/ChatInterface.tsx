@@ -11,7 +11,7 @@ import {
 } from '@/hooks/chat-hooks'
 import Button from '@/components/ui/Button'
 import Alert from '@/components/ui/Alert'
-import ChatUtils from '@/lib/utils/ChatUtil'
+import ChatUtils from '@/utils/ChatUtil'
 
 interface ChatInterfaceProps {
   documentId: string

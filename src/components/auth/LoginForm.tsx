@@ -6,7 +6,7 @@ import { useLoginForm } from '@/hooks/auth-hooks'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Alert from '@/components/ui/Alert'
-import UIUtils from '@/lib/utils/AuthUtil'
+import UIUtils from '@/utils/AuthUtil'
 
 export interface LoginFormProps {
   onSubmit: (email: string) => Promise<void>

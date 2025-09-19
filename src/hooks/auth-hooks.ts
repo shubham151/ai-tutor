@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthService from '@/core/AuthService'
-import ValidationUtils from '@/lib/utils/Validation'
+import ValidationUtils from '@/utils/Validation'
 import { AuthFormErrors } from '@/types/auth'
 
 interface UseAuthFormState {

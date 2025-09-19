@@ -5,7 +5,7 @@ import { useVerifyForm } from '@/hooks/auth-hooks'
 import Button from '@/components/ui/Button'
 import OTPInput from '@/components/ui/OTPInput'
 import Alert from '@/components/ui/Alert'
-import AuthUtils from '@/lib/utils/AuthUtil'
+import AuthUtils from '@/utils/AuthUtil'
 
 export interface VerifyFormProps {
   email: string
