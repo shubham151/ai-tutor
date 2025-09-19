@@ -4,10 +4,11 @@ function isWebSpeechSupported(): boolean {
   return 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window
 }
 
-function createSpeechRecognition(): SpeechRecognition | null {
+function createSpeechRecognition(): any | null {
   if (!isWebSpeechSupported()) return null
 
-  const SpeechRecognition = window.SpeechRecognition || window.SpeechRecognition
+  const SpeechRecognition =
+    (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
   const recognition = new SpeechRecognition()
 
   recognition.continuous = false
@@ -26,12 +27,12 @@ async function transcribeWithWebAPI(audioBlob: Blob): Promise<string> {
       return
     }
 
-    recognition.onresult = (event) => {
+    recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript
       resolve(transcript)
     }
 
-    recognition.onerror = (event) => {
+    recognition.onerror = (event: any) => {
       reject(new Error(`Speech recognition error: ${event.error}`))
     }
 
