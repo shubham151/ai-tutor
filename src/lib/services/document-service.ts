@@ -37,51 +37,6 @@ function cleanExtractedText(text: string): string {
     .trim()
 }
 
-async function extractTextFromPdf(buffer: Buffer): Promise<PdfExtractionResult> {
-  let extractedText = ''
-  let pageCount = 0
-  let textAndCoords: any[] = []
-
-  try {
-    const doc = await pdfjs.getDocument({ data: new Uint8Array(buffer) }).promise
-    pageCount = doc.numPages
-
-    for (let i = 1; i <= pageCount; i++) {
-      const page = await doc.getPage(i)
-      const textContent = await page.getTextContent()
-      const viewport = page.getViewport({ scale: 1.0 })
-
-      const pageItems = textContent.items.map((item: any) => {
-        const transform = item.transform
-        const x = transform[4]
-        const y = viewport.height - transform[5] - item.height
-
-        return {
-          text: item.str,
-          pageNumber: i,
-          x: x,
-          y: y,
-          width: item.width,
-          height: item.height,
-        }
-      })
-
-      extractedText += pageItems.map((item: any) => item.text).join(' ') + '\n'
-      textAndCoords = textAndCoords.concat(pageItems)
-    }
-
-    return {
-      pageCount,
-      extractedText: cleanExtractedText(extractedText),
-      textAndCoords,
-    }
-  } catch (error) {
-    throw new Error(
-      `PDF text extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-    )
-  }
-}
-
 async function ensureUploadDirectory(): Promise<string> {
   const uploadDir = join(process.cwd(), config.storage.uploadDir)
   await mkdir(uploadDir, { recursive: true })

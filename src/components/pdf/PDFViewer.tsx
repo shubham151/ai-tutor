@@ -51,6 +51,7 @@ const PDFViewer = ({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const pdfDocRef = useRef<any>(null)
+  const renderTaskRef = useRef<any>(null)
 
   // Initialize PDF.js
   useEffect(() => {
@@ -106,18 +107,23 @@ const PDFViewer = ({
     }
   }, [pageToNavigate, currentPage, totalPages])
 
-  // Effect to re-render the current page when annotations or current page change
+  // Effect to re-render the current page when state changes
   useEffect(() => {
     if (pdfDocRef.current) {
       renderPage(currentPage)
     }
-  }, [annotations, currentPage])
+  }, [currentPage, scale, rotation, annotations])
 
   const renderPage = async (pageNum: number, pdfDoc?: any) => {
     if (!canvasRef.current) return
 
     const pdf = pdfDoc || pdfDocRef.current
     if (!pdf) return
+
+    // Cancel previous render if it's still running
+    if (renderTaskRef.current) {
+      renderTaskRef.current.cancel()
+    }
 
     try {
       const page = await pdf.getPage(pageNum)
@@ -143,11 +149,22 @@ const PDFViewer = ({
         viewport: viewport,
       }
 
-      await page.render(renderContext).promise
+      // Store the render task
+      renderTaskRef.current = page.render(renderContext)
+      await renderTaskRef.current.promise
+
+      // Reset the render task ref after completion
+      renderTaskRef.current = null
 
       // Render annotations for current page
       renderAnnotations(pageNum, context, viewport)
-    } catch (err) {
+    } catch (err: any) {
+      // Ignore errors from cancelled renders
+      if (err.name === 'RenderingCancelledException') {
+        console.log('Rendering was cancelled.')
+        return
+      }
+
       console.error('Page rendering error:', err)
       setError('Failed to render page')
     }

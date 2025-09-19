@@ -1,5 +1,3 @@
-// lib/config/index.ts
-
 interface DatabaseConfig {
   url: string
   maxConnections: number

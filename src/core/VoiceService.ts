@@ -7,7 +7,7 @@ function isWebSpeechSupported(): boolean {
 function createSpeechRecognition(): SpeechRecognition | null {
   if (!isWebSpeechSupported()) return null
 
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+  const SpeechRecognition = window.SpeechRecognition || window.SpeechRecognition
   const recognition = new SpeechRecognition()
 
   recognition.continuous = false
