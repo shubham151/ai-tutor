@@ -25,7 +25,7 @@ interface SendMessageResponse {
     id: string
     content: string
     pageReference?: number
-    timestamp: Date
+    createdAt: Date
   }
   annotations: any[]
 }
@@ -143,7 +143,7 @@ async function sendMessage(request: SendMessageRequest): Promise<SendMessageResp
       id: assistantMessage.id,
       content: tutorResponse.content,
       pageReference: tutorResponse.pageReference,
-      timestamp: assistantMessage.createdAt,
+      createdAt: assistantMessage.createdAt,
     },
     annotations: tutorResponse.annotations,
   }

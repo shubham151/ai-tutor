@@ -41,7 +41,7 @@ export interface ActivityItem {
   type: 'upload' | 'chat' | 'annotation'
   title: string
   subtitle?: string
-  timestamp: string
+  createdAt: string
   document: Document
 }
 

@@ -71,7 +71,7 @@ function MessageBubble({
   onPageClick: (page: number) => void
 }) {
   const isUser = message.role === 'user'
-  const formattedTime = ChatUtils.formatTime(message.timestamp)
+  const formattedTime = ChatUtils.formatTime(message.createdAt)
 
   marked.setOptions({
     breaks: true,

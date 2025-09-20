@@ -7,7 +7,7 @@ interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
-  timestamp: string
+  createdAt: string
   metadata?: {
     pageReference?: number
     annotations?: any[]
@@ -176,7 +176,7 @@ export function useMessageHandling() {
       id: Date.now().toString(),
       role: 'user',
       content: content.trim(),
-      timestamp: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
     }
   }, [])
 
@@ -185,7 +185,7 @@ export function useMessageHandling() {
       id: (Date.now() + 1).toString(),
       role: 'assistant',
       content: response.message.content,
-      timestamp: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
       metadata: {
         pageReference: response.message.pageReference,
         annotations: response.annotations,

@@ -50,7 +50,7 @@ const RecentActivity = ({ documents, className = '' }: RecentActivityProps) => {
       id: doc.id,
       type: 'upload' as const,
       title: `Uploaded ${truncateFileName(doc.originalName)}`,
-      timestamp: doc.createdAt,
+      createdAt: doc.createdAt,
       document: doc,
     }))
 
@@ -60,12 +60,12 @@ const RecentActivity = ({ documents, className = '' }: RecentActivityProps) => {
       type: 'chat' as const,
       title: `Started chat session`,
       subtitle: truncateFileName(doc.originalName),
-      timestamp: new Date(Date.now() - Math.random() * 86400000).toISOString(), // Random time within last day
+      createdAt: new Date(Date.now() - Math.random() * 86400000).toISOString(), // Random time within last day
       document: doc,
     }))
 
     return [...activities, ...chatActivities]
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 5)
   }
 
@@ -124,7 +124,7 @@ const RecentActivity = ({ documents, className = '' }: RecentActivityProps) => {
                       <p className="text-xs text-gray-500 truncate">{activity.subtitle}</p>
                     )}
                     <p className="text-xs text-gray-400 mt-1">
-                      {formatTimeAgo(activity.timestamp)}
+                      {formatTimeAgo(activity.createdAt)}
                     </p>
                   </div>
 

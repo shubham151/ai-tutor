@@ -61,7 +61,7 @@ function createMockActivities(documents: any[]) {
     id: doc.id,
     type: 'upload' as const,
     title: `Uploaded ${truncateFileName(doc.originalName, 25)}`,
-    timestamp: doc.createdAt,
+    createdAt: doc.createdAt,
     document: doc,
   }))
 
@@ -70,12 +70,12 @@ function createMockActivities(documents: any[]) {
     type: 'chat' as const,
     title: `Started chat session`,
     subtitle: truncateFileName(doc.originalName, 25),
-    timestamp: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+    createdAt: new Date(Date.now() - Math.random() * 86400000).toISOString(),
     document: doc,
   }))
 
   return [...activities, ...chatActivities]
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5)
 }
 

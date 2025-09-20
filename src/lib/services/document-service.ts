@@ -25,9 +25,9 @@ interface PdfExtractionResult {
 }
 
 function generateUniqueFilename(originalName: string): string {
-  const timestamp = Date.now()
+  const createdAt = Date.now()
   const cleanName = originalName.replace(/[^a-zA-Z0-9.-]/g, '_')
-  return `${timestamp}-${cleanName}`
+  return `${createdAt}-${cleanName}`
 }
 
 function cleanExtractedText(text: string): string {

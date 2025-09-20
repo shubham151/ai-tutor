@@ -1,7 +1,7 @@
 // app/utils/chat-utils.ts
 
-function formatTime(timestamp: string): string {
-  return new Date(timestamp).toLocaleTimeString([], {
+function formatTime(createdAt: string): string {
+  return new Date(createdAt).toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
   })

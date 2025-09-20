@@ -5,7 +5,7 @@ interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
-  timestamp: string
+  createdAt: string
   metadata?: any
 }
 
@@ -14,7 +14,7 @@ interface ChatResponse {
     id: string
     content: string
     pageReference?: number
-    timestamp: string
+    createdAt: string
   }
   annotations: any[]
 }

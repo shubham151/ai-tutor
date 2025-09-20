@@ -133,7 +133,7 @@ Current user question: ${message}`
           id: assistantMessage.id,
           content: result.text,
           pageReference,
-          timestamp: assistantMessage.createdAt,
+          createdAt: assistantMessage.createdAt,
         },
         annotations,
       })
