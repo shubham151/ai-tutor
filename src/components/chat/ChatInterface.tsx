@@ -2,6 +2,7 @@
 'use client'
 
 import React, { useEffect } from 'react'
+import { marked } from 'marked'
 import { Send, Mic, MicOff, Loader2, Bot, User } from 'lucide-react'
 import {
   useChatState,
@@ -72,6 +73,17 @@ function MessageBubble({
   const isUser = message.role === 'user'
   const formattedTime = ChatUtils.formatTime(message.timestamp)
 
+  marked.setOptions({
+    breaks: true,
+    gfm: true,
+    async: false,
+  })
+
+  const htmlContent =
+    typeof marked(message.content) === 'string'
+      ? (marked(message.content) as string)
+      : message.content
+
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div className={`flex gap-3 max-w-[80%] ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
@@ -90,7 +102,10 @@ function MessageBubble({
             isUser ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-900'
           }`}
         >
-          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+          <div
+            className="text-sm prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+            dangerouslySetInnerHTML={{ __html: htmlContent }}
+          />
 
           {message.metadata?.pageReference && (
             <button

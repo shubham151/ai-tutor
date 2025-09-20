@@ -32,8 +32,8 @@ function generateUniqueFilename(originalName: string): string {
 
 function cleanExtractedText(text: string): string {
   return text
-    .replace(/\x00/g, '') // Remove null bytes
-    .replace(/[^\x20-\x7E\n\r\t]/g, '') // Keep only printable ASCII + newlines/tabs
+    .replace(/\x00/g, '')
+    .replace(/[^\x20-\x7E\n\r\t]/g, '')
     .trim()
 }
 
