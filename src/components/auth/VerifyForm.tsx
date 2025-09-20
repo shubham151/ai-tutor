@@ -41,9 +41,7 @@ function VerifyForm({
 
     try {
       await onSubmit(code)
-    } catch {
-      // Parent handles error
-    }
+    } catch {}
   }
 
   const handleResend = async () => {
@@ -52,9 +50,7 @@ function VerifyForm({
     try {
       await onResend()
       startResendCooldown()
-    } catch {
-      // Parent handles error
-    }
+    } catch {}
   }
 
   const handleCodeChange = (newCode: string) => {

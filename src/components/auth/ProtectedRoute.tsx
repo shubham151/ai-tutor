@@ -24,7 +24,7 @@ const ProtectedRoute = ({ children, redirectTo = '/login', fallback }: Protected
 
   // Show loading state
   if (isLoading) {
-    return fallback || <LoadingScreen message="Checking authentication..." />
+    return fallback || <LoadingScreen message="Loading..." />
   }
 
   // Show nothing while redirecting

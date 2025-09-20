@@ -20,7 +20,6 @@ function LoginForm({ onSubmit, isLoading = false, error, success }: LoginFormPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
     const { isValid, email: validatedEmail } = validateAndGetEmail()
     if (!isValid) return
 
