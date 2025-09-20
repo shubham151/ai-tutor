@@ -49,6 +49,7 @@ const PDFViewer = ({
   const [error, setError] = useState<string>('')
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const annotationCanvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const pdfDocRef = useRef<any>(null)
   const renderTaskRef = useRef<any>(null)
@@ -80,7 +81,6 @@ const PDFViewer = ({
       } catch (err: any) {
         console.error('PDF loading error:', err)
 
-        // More specific error messages
         let errorMessage = 'Failed to load PDF. Please try again.'
         if (err.name === 'InvalidPDFException') {
           errorMessage = 'Invalid PDF file format.'
@@ -107,15 +107,22 @@ const PDFViewer = ({
     }
   }, [pageToNavigate, currentPage, totalPages])
 
+  // Effect to re-render when annotations change
+  useEffect(() => {
+    if (pdfDocRef.current && !isLoading) {
+      renderAnnotations()
+    }
+  }, [annotations, currentPage, scale, rotation])
+
   // Effect to re-render the current page when state changes
   useEffect(() => {
     if (pdfDocRef.current) {
       renderPage(currentPage)
     }
-  }, [currentPage, scale, rotation, annotations])
+  }, [currentPage, scale, rotation])
 
   const renderPage = async (pageNum: number, pdfDoc?: any) => {
-    if (!canvasRef.current) return
+    if (!canvasRef.current || !annotationCanvasRef.current) return
 
     const pdf = pdfDoc || pdfDocRef.current
     if (!pdf) return
@@ -128,6 +135,7 @@ const PDFViewer = ({
     try {
       const page = await pdf.getPage(pageNum)
       const canvas = canvasRef.current
+      const annotationCanvas = annotationCanvasRef.current
       const context = canvas.getContext('2d')
 
       if (!context) return
@@ -137,9 +145,11 @@ const PDFViewer = ({
         rotation: rotation,
       })
 
-      // Set canvas dimensions
+      // Set canvas dimensions for both canvases
       canvas.height = viewport.height
       canvas.width = viewport.width
+      annotationCanvas.height = viewport.height
+      annotationCanvas.width = viewport.width
 
       // Clear the canvas
       context.clearRect(0, 0, canvas.width, canvas.height)
@@ -156,8 +166,8 @@ const PDFViewer = ({
       // Reset the render task ref after completion
       renderTaskRef.current = null
 
-      // Render annotations for current page
-      renderAnnotations(pageNum, context, viewport)
+      // Render annotations after page is rendered
+      renderAnnotations()
     } catch (err: any) {
       // Ignore errors from cancelled renders
       if (err.name === 'RenderingCancelledException') {
@@ -170,36 +180,64 @@ const PDFViewer = ({
     }
   }
 
-  const renderAnnotations = (pageNum: number, context: CanvasRenderingContext2D, viewport: any) => {
-    const pageAnnotations = annotations.filter((ann) => ann.pageNumber === pageNum)
+  const renderAnnotations = () => {
+    if (!annotationCanvasRef.current || !canvasRef.current) return
+
+    const annotationCanvas = annotationCanvasRef.current
+    const context = annotationCanvas.getContext('2d')
+    if (!context) return
+
+    // Clear annotation canvas
+    context.clearRect(0, 0, annotationCanvas.width, annotationCanvas.height)
+
+    // Filter annotations for current page
+    const pageAnnotations = annotations.filter((ann) => ann.pageNumber === currentPage)
+
+    console.log(`Rendering ${pageAnnotations.length} annotations for page ${currentPage}`)
 
     pageAnnotations.forEach((annotation) => {
       context.save()
 
-      // Convert PDF coordinates to canvas coordinates
-      const x = annotation.x * viewport.width
-      const y = (1 - annotation.y) * viewport.height // PDF coordinates are bottom-up
-      const width = annotation.width * viewport.width
-      const height = annotation.height * viewport.height
+      // Convert normalized coordinates (0-1) to canvas coordinates
+      const canvasWidth = annotationCanvas.width
+      const canvasHeight = annotationCanvas.height
+
+      const x = annotation.x * canvasWidth
+      const y = annotation.y * canvasHeight
+      const width = annotation.width * canvasWidth
+      const height = annotation.height * canvasHeight
+
+      console.log('Rendering annotation:', {
+        type: annotation.type,
+        x,
+        y,
+        width,
+        height,
+        color: annotation.color,
+      })
 
       context.strokeStyle = annotation.color || '#ff0000'
       context.lineWidth = 2
-      context.fillStyle = annotation.color ? `${annotation.color}40` : '#ff000040'
+      context.fillStyle = annotation.color ? `${annotation.color}66` : '#ff000066' // Semi-transparent
 
       switch (annotation.type) {
         case 'highlight':
-          context.fillRect(x, y - height, width, height)
+          context.fillRect(x, y, width, height)
+          context.strokeRect(x, y, width, height)
           break
         case 'circle':
           context.beginPath()
-          context.ellipse(x + width / 2, y - height / 2, width / 2, height / 2, 0, 0, 2 * Math.PI)
+          context.ellipse(x + width / 2, y + height / 2, width / 2, height / 2, 0, 0, 2 * Math.PI)
+          context.fill()
           context.stroke()
           break
         case 'arrow':
-          // Simple arrow implementation
           context.beginPath()
-          context.moveTo(x, y)
-          context.lineTo(x + width, y - height)
+          context.moveTo(x, y + height)
+          context.lineTo(x + width, y)
+          context.lineTo(x + width * 0.8, y + height * 0.2)
+          context.moveTo(x + width, y)
+          context.lineTo(x + width * 0.8, y - height * 0.2)
           context.stroke()
           break
       }
@@ -226,22 +264,27 @@ const PDFViewer = ({
   }
 
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!onAnnotationAdd || !canvasRef.current) return
+    if (!onAnnotationAdd || !annotationCanvasRef.current) return
 
-    const canvas = canvasRef.current
+    const canvas = annotationCanvasRef.current
     const rect = canvas.getBoundingClientRect()
-    const x = (event.clientX - rect.left) / canvas.width
-    const y = 1 - (event.clientY - rect.top) / canvas.height // Convert to PDF coordinates
+
+    // Calculate normalized coordinates (0-1)
+    const x = (event.clientX - rect.left) / rect.width
+    const y = (event.clientY - rect.top) / rect.height
+
+    console.log('Canvas click at normalized coords:', { x, y })
 
     // Create a highlight annotation at click position
     const annotation: Omit<Annotation, 'id'> = {
       pageNumber: currentPage,
-      x: x - 0.05,
-      y: y + 0.02,
+      x: Math.max(0, x - 0.05), // Center the highlight around click
+      y: Math.max(0, y - 0.02),
       width: 0.1,
       height: 0.04,
       type: 'highlight',
       color: '#ffff00',
+      text: 'Manual highlight',
     }
 
     onAnnotationAdd(annotation)
@@ -326,12 +369,19 @@ const PDFViewer = ({
             </div>
           </div>
         ) : (
-          <div className="flex justify-center">
+          <div className="flex justify-center relative">
+            {/* PDF Canvas */}
             <canvas
               ref={canvasRef}
+              className="shadow-lg border border-gray-300 rounded absolute"
+              style={{ maxWidth: '100%', height: 'auto', zIndex: 1 }}
+            />
+            {/* Annotation Canvas (overlay) */}
+            <canvas
+              ref={annotationCanvasRef}
               onClick={handleCanvasClick}
-              className="shadow-lg cursor-crosshair border border-gray-300 rounded"
-              style={{ maxWidth: '100%', height: 'auto' }}
+              className="shadow-lg cursor-crosshair border border-gray-300 rounded relative"
+              style={{ maxWidth: '100%', height: 'auto', zIndex: 2 }}
             />
           </div>
         )}

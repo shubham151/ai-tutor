@@ -27,32 +27,87 @@ async function extractTextFromPdf(buffer: Buffer): Promise<PdfExtractionResult> 
   let textAndCoords: any[] = []
 
   try {
-    const doc = await pdfjs.getDocument({ data: new Uint8Array(buffer) }).promise
+    const doc = await pdfjs.getDocument({
+      data: new Uint8Array(buffer),
+      useSystemFonts: true,
+      standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/standard_fonts/',
+    }).promise
+
     pageCount = doc.numPages
 
     for (let i = 1; i <= pageCount; i++) {
       const page = await doc.getPage(i)
-      const textContent = await page.getTextContent()
-      const viewport = page.getViewport({ scale: 1.0 })
 
-      const pageItems = textContent.items.map((item: any) => {
-        const transform = item.transform
-        const x = transform[4]
-        const y = viewport.height - transform[5] - item.height
-
-        return {
-          text: item.str,
-          pageNumber: i,
-          x: x,
-          y: y,
-          width: item.width,
-          height: item.height,
-        }
+      // Get text content with proper options
+      const textContent = await page.getTextContent({
+        includeMarkedContent: false,
+        disableNormalization: false,
       })
 
-      extractedText += pageItems.map((item: any) => item.text).join(' ') + '\n'
+      const viewport = page.getViewport({ scale: 1.0 })
+
+      // Process text items with better filtering
+      const pageItems = textContent.items
+        .filter((item: any) => {
+          // Filter out items without text or with only whitespace
+          return item.str && item.str.trim().length > 0
+        })
+        .map((item: any) => {
+          const transform = item.transform
+
+          // Normalize coordinates to 0-1 range for consistency
+          const normalizedX = transform[4] / viewport.width
+          const normalizedY = (viewport.height - transform[5]) / viewport.height
+          const normalizedWidth = item.width / viewport.width
+          const normalizedHeight = item.height / viewport.height
+
+          return {
+            text: item.str,
+            pageNumber: i,
+            x: Math.max(0, Math.min(1, normalizedX)), // Clamp to 0-1
+            y: Math.max(0, Math.min(1, normalizedY)),
+            width: Math.max(0, Math.min(1, normalizedWidth)),
+            height: Math.max(0, Math.min(1, normalizedHeight)),
+          }
+        })
+
+      // Sort items by position (top-to-bottom, left-to-right)
+      pageItems.sort((a, b) => {
+        const yDiff = a.y - b.y
+        if (Math.abs(yDiff) > 0.01) {
+          // Same line threshold
+          return yDiff
+        }
+        return a.x - b.x
+      })
+
+      // Build text with better spacing
+      let pageText = ''
+      let lastY = -1
+      let lastX = -1
+
+      for (const item of pageItems) {
+        // Add line break if we moved to a new line
+        if (lastY >= 0 && Math.abs(item.y - lastY) > 0.01) {
+          pageText += '\n'
+        }
+        // Add space if there's a gap on the same line
+        else if (lastX >= 0 && item.x - lastX > 0.02) {
+          pageText += ' '
+        }
+
+        pageText += item.text
+        lastY = item.y
+        lastX = item.x + item.width
+      }
+
+      extractedText += pageText + '\n\n'
       textAndCoords = textAndCoords.concat(pageItems)
+
+      console.log(`Page ${i}: Extracted ${pageItems.length} text items`)
     }
+
+    console.log(`Total text extraction: ${textAndCoords.length} items across ${pageCount} pages`)
 
     return {
       pageCount,
@@ -60,6 +115,7 @@ async function extractTextFromPdf(buffer: Buffer): Promise<PdfExtractionResult> 
       textAndCoords,
     }
   } catch (error) {
+    console.error('PDF extraction error:', error)
     throw new Error(
       `PDF text extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`
     )
@@ -69,7 +125,9 @@ async function extractTextFromPdf(buffer: Buffer): Promise<PdfExtractionResult> 
 function cleanExtractedText(text: string): string {
   return text
     .replace(/\x00/g, '') // Remove null bytes
-    .replace(/[^\x20-\x7E\n\r\t]/g, '') // Keep only printable ASCII + newlines/tabs
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '') // Remove control characters
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .replace(/\n\s*\n/g, '\n') // Remove empty lines
     .trim()
 }
 

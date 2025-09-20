@@ -1,4 +1,3 @@
-// app/api/chat/[documentId]/route.ts
 import { NextRequest } from 'next/server'
 import { withAuth } from '@/middleware'
 import ChatService from '@/lib/services/chat-service'

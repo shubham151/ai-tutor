@@ -78,14 +78,8 @@ async function processUpload(
 
   const buffer = Buffer.from(await file.arrayBuffer())
   const filename = generateUniqueFilename(file.name)
-
-  // Save file to storage
   await saveFileToStorage(buffer, filename)
 
-  // Extract PDF content
-  //   const pdfData = await extractTextFromPdf(buffer)
-
-  // Create document record - store annotations as JSON in metadata field or separate field
   const document = await prisma.document.create({
     data: {
       userId,
@@ -96,10 +90,43 @@ async function processUpload(
       fileSize: file.size,
       pageCount: pdfData.pageCount,
       extractedText: pdfData.extractedText.substring(0, 50000), // Limit text size
-      // Store text coordinates as JSON if you have a JSON field, or omit if using separate annotations table
-      // annotations: pdfData.textAndCoords, // Remove this line
     },
   })
+
+  // Store text coordinates as annotations for highlighting
+  if (pdfData.textAndCoords.length > 0) {
+    console.log(`Saving ${pdfData.textAndCoords.length} text coordinates to database`)
+
+    // Group by page for debugging
+    const pageGroups = pdfData.textAndCoords.reduce((acc, coord) => {
+      acc[coord.pageNumber] = (acc[coord.pageNumber] || 0) + 1
+      return acc
+    }, {})
+    console.log('Text coordinates per page:', pageGroups)
+
+    // Batch insert in chunks to handle large documents
+    const chunkSize = 1000
+    for (let i = 0; i < pdfData.textAndCoords.length; i += chunkSize) {
+      const chunk = pdfData.textAndCoords.slice(i, i + chunkSize)
+      console.log(`Inserting chunk ${Math.floor(i / chunkSize) + 1}: ${chunk.length} items`)
+
+      await prisma.annotation.createMany({
+        data: chunk.map((coord) => ({
+          documentId: document.id,
+          pageNumber: coord.pageNumber,
+          x: coord.x,
+          y: coord.y,
+          width: coord.width,
+          height: coord.height,
+          type: 'text',
+          color: 'transparent',
+          text: coord.text,
+        })),
+      })
+    }
+
+    console.log('All text coordinates saved successfully')
+  }
 
   return document
 }

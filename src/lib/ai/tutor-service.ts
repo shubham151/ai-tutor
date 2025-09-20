@@ -2,6 +2,9 @@
 import aiFactory from './factory'
 import { AIMessage } from './base-service'
 import config from '@/lib/config'
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient()
 
 interface Document {
   id: string
@@ -26,6 +29,7 @@ interface Annotation {
   type: 'highlight' | 'note' | 'drawing'
   color: string
   content?: string
+  text?: string
 }
 
 interface ConversationContext {
@@ -39,17 +43,17 @@ function createTutorSystemPrompt(document: Document): string {
 Document context:
 - Document name: ${document.originalName}
 - Total pages: ${document.pageCount}
-- Document text preview: ${document.extractedText?.slice(0, 2000) || 'Not available'}
+- Document content with page markers: ${document.extractedText || 'Not available'}
 
 Your capabilities:
 1. Answer questions about the document content
-2. Reference specific pages when relevant
+2. Reference specific pages when relevant (you can see [PAGE X] markers)
 3. Suggest highlights or annotations to help learning
 4. Provide clear explanations of concepts
 
 When referencing content:
-- Include page numbers when possible
-- Suggest highlighting important sections
+- Use the [PAGE X] markers to identify which page contains specific information
+- Include accurate page numbers when suggesting highlights
 - Use simple, clear language
 - Be encouraging and supportive`
 }
@@ -64,17 +68,94 @@ function extractPageReferences(text: string): number[] {
     .filter((num) => num > 0)
 }
 
-function createHighlightAnnotations(pageReferences: number[]): Annotation[] {
-  return pageReferences.map((pageNumber) => ({
-    pageNumber,
-    x: 0.1,
-    y: 0.5,
-    width: 0.8,
-    height: 0.1,
-    type: 'highlight' as const,
-    color: '#ffff00',
-    content: 'AI suggested highlight',
-  }))
+async function findTextToHighlight(
+  documentId: string,
+  searchText: string,
+  pageNumber?: number
+): Promise<Annotation[]> {
+  try {
+    // Get text coordinates from annotations table
+    const textCoords = await prisma.annotation.findMany({
+      where: {
+        documentId,
+        type: 'text',
+        ...(pageNumber && { pageNumber }),
+        text: { contains: searchText, mode: 'insensitive' },
+      },
+      take: 5, // Limit to 5 matches
+    })
+
+    return textCoords.map((coord) => ({
+      pageNumber: coord.pageNumber,
+      x: coord.x,
+      y: coord.y,
+      width: coord.width,
+      height: coord.height,
+      type: 'highlight' as const,
+      color: '#ffff00',
+      content: coord.text || 'Highlighted text',
+      text: coord.text || '',
+    }))
+  } catch (error) {
+    console.error('Failed to find text coordinates:', error)
+    return []
+  }
+}
+
+async function createSmartHighlightAnnotations(
+  documentId: string,
+  aiResponse: string,
+  pageReferences: number[]
+): Promise<Annotation[]> {
+  const annotations: Annotation[] = []
+
+  // Extract key phrases from AI response that might be in the document
+  const keyPhrases = extractKeyPhrases(aiResponse)
+
+  for (const phrase of keyPhrases) {
+    for (const pageNumber of pageReferences) {
+      const matches = await findTextToHighlight(documentId, phrase, pageNumber)
+      annotations.push(...matches)
+    }
+  }
+
+  // If no specific matches, try broader search
+  if (annotations.length === 0 && pageReferences.length > 0) {
+    const words = aiResponse
+      .split(' ')
+      .filter((word) => word.length > 4 && /^[a-zA-Z]+$/.test(word))
+      .slice(0, 3)
+
+    for (const word of words) {
+      for (const pageNumber of pageReferences) {
+        const matches = await findTextToHighlight(documentId, word, pageNumber)
+        annotations.push(...matches.slice(0, 2)) // Limit matches per word
+      }
+    }
+  }
+
+  return annotations.slice(0, 10) // Limit total annotations
+}
+
+function extractKeyPhrases(text: string): string[] {
+  // Extract phrases in quotes or emphasized text
+  const quotedPhrases = text.match(/"([^"]+)"/g)?.map((match) => match.slice(1, -1)) || []
+  const emphasized = text.match(/\*\*([^*]+)\*\*/g)?.map((match) => match.slice(2, -2)) || []
+
+  // Extract noun phrases (simplified)
+  const words = text.split(/\s+/)
+  const phrases: string[] = []
+
+  for (let i = 0; i < words.length - 1; i++) {
+    const twoWords = `${words[i]} ${words[i + 1]}`.replace(/[^\w\s]/g, '')
+    if (twoWords.length > 6) {
+      phrases.push(twoWords)
+    }
+  }
+
+  return [...quotedPhrases, ...emphasized, ...phrases.slice(0, 5)]
+    .filter((phrase) => phrase.length > 3)
+    .slice(0, 10)
 }
 
 function calculateConfidence(response: string, document: Document): number {
@@ -119,7 +200,11 @@ async function generateTutorResponse(
     })
 
     const pageReferences = extractPageReferences(aiResponse.content)
-    const annotations = createHighlightAnnotations(pageReferences)
+    const annotations = await createSmartHighlightAnnotations(
+      context.document.id,
+      aiResponse.content,
+      pageReferences
+    )
     const confidence = calculateConfidence(aiResponse.content, context.document)
 
     return {
@@ -161,39 +246,9 @@ async function summarizeDocument(document: Document): Promise<string> {
 }
 
 async function suggestAnnotations(document: Document, pageNumber?: number): Promise<Annotation[]> {
-  const aiService = aiFactory.getDefaultService()
-
-  if (!document.extractedText) {
-    return []
-  }
-
   try {
-    const prompt = pageNumber
-      ? `Suggest important sections to highlight on page ${pageNumber} of this document`
-      : `Suggest 3-5 important sections to highlight throughout this document`
-
-    const response = await aiService.generateText(
-      `${prompt}: ${document.extractedText.slice(0, 3000)}`,
-      {
-        systemPrompt: config.ai.systemPrompts.annotator,
-        temperature: 0.3,
-        maxTokens: 300,
-      }
-    )
-
-    // Parse response and create annotations (simplified logic)
-    const suggestions = response.content.split('\n').filter((line) => line.trim())
-
-    return suggestions.slice(0, 5).map((_, index) => ({
-      pageNumber: pageNumber || index + 1,
-      x: 0.1,
-      y: 0.2 + index * 0.15,
-      width: 0.8,
-      height: 0.1,
-      type: 'highlight' as const,
-      color: '#ffff00',
-      content: `AI suggestion ${index + 1}`,
-    }))
+    // Get actual text coordinates for suggestions
+    return await findTextToHighlight(document.id, '', pageNumber)
   } catch (error) {
     console.error('Annotation suggestion failed:', error)
     return []

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Maximize2, Minimize2 } from 'lucide-react'
 import PDFViewer from '@/components/pdf/PDFViewer'
@@ -42,10 +42,9 @@ const ChatView = ({ documentId }: ChatViewProps) => {
   const [isFullScreenChat, setIsFullScreenChat] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
-  // Add a new state to handle AI-triggered page navigation
   const [pageToNavigate, setPageToNavigate] = useState<number | null>(null)
 
-  React.useEffect(() => {
+  useEffect(() => {
     loadDocument()
     loadAnnotations()
   }, [documentId])
@@ -92,6 +91,8 @@ const ChatView = ({ documentId }: ChatViewProps) => {
   const handleAnnotationAdd = useCallback(
     async (newAnnotation: Omit<Annotation, 'id'>) => {
       try {
+        console.log('Adding manual annotation:', newAnnotation)
+
         const response = await fetch(`/api/documents/${documentId}/annotations`, {
           method: 'POST',
           headers: {
@@ -112,14 +113,54 @@ const ChatView = ({ documentId }: ChatViewProps) => {
     [documentId]
   )
 
+  // Handle AI-generated annotations from chat
+  const handleAIAnnotation = useCallback((aiAnnotation: any) => {
+    console.log('Received AI annotation:', aiAnnotation)
+
+    // Convert AI annotation format to our annotation format
+    const annotation: Annotation = {
+      id: `ai-${Date.now()}-${Math.random()}`, // Generate temp ID
+      pageNumber: aiAnnotation.pageNumber,
+      x: aiAnnotation.x,
+      y: aiAnnotation.y,
+      width: aiAnnotation.width,
+      height: aiAnnotation.height,
+      type: aiAnnotation.type || 'highlight',
+      color: aiAnnotation.color || '#ffff00',
+      text: aiAnnotation.content || aiAnnotation.text,
+    }
+
+    // Add to local state immediately for UI responsiveness
+    setAnnotations((prev) => {
+      // Check if annotation already exists to avoid duplicates
+      const exists = prev.some(
+        (existing) =>
+          existing.pageNumber === annotation.pageNumber &&
+          Math.abs(existing.x - annotation.x) < 0.01 &&
+          Math.abs(existing.y - annotation.y) < 0.01
+      )
+
+      if (exists) return prev
+      return [...prev, annotation]
+    })
+  }, [])
+
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page)
   }, [])
 
   const handlePageNavigate = useCallback((page: number) => {
-    // This function will now update the state, which in turn triggers a re-render
     setPageToNavigate(page)
+    setCurrentPage(page)
   }, [])
+
+  // Clear navigation state after it's been used
+  useEffect(() => {
+    if (pageToNavigate !== null) {
+      const timer = setTimeout(() => setPageToNavigate(null), 100)
+      return () => clearTimeout(timer)
+    }
+  }, [pageToNavigate])
 
   if (isLoading) {
     return (
@@ -223,7 +264,7 @@ const ChatView = ({ documentId }: ChatViewProps) => {
           <div className={`${isFullScreenChat ? 'w-full' : 'w-1/2'} transition-all duration-300`}>
             <ChatInterface
               documentId={documentId}
-              onAnnotationRequest={handleAnnotationAdd}
+              onAnnotationRequest={handleAIAnnotation}
               onPageNavigate={handlePageNavigate}
               className="h-full"
             />
