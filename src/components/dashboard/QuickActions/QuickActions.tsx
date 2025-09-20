@@ -1,7 +1,7 @@
-// components/dashboard/QuickActions.tsx
 import React from 'react'
 import { Plus, BookTemplate, HelpCircle, Zap, Users, Settings } from 'lucide-react'
 import Card from '@/components/ui/Card'
+import { ActionButton } from './ActionButton'
 
 interface QuickAction {
   id: string
@@ -19,12 +19,12 @@ interface QuickActionsProps {
   className?: string
 }
 
-const QuickActions = ({
+export function QuickActions({
   onNewDocument,
   onViewTemplates,
   onGetHelp,
   className = '',
-}: QuickActionsProps) => {
+}: QuickActionsProps) {
   const actions: QuickAction[] = [
     {
       id: 'upload',
@@ -78,32 +78,28 @@ const QuickActions = ({
 
   return (
     <Card variant="default" padding="lg" className={className}>
-      <div className="text-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Quick Actions</h2>
-        <p className="text-gray-600">Everything you need to get started</p>
-      </div>
-
+      <QuickActionsHeader />
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {actions.map((action) => (
-          <button
+          <ActionButton
             key={action.id}
+            title={action.title}
+            description={action.description}
+            icon={action.icon}
+            color={action.color}
             onClick={action.action}
-            className="group p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-all duration-200 hover:shadow-md text-left"
-          >
-            <div
-              className={`w-10 h-10 rounded-lg ${action.color} flex items-center justify-center mb-3 transition-colors group-hover:scale-110 transform duration-200`}
-            >
-              {action.icon}
-            </div>
-            <h3 className="font-medium text-gray-900 text-sm mb-1 group-hover:text-blue-600 transition-colors">
-              {action.title}
-            </h3>
-            <p className="text-xs text-gray-500 leading-tight">{action.description}</p>
-          </button>
+          />
         ))}
       </div>
     </Card>
   )
 }
 
-export default QuickActions
+function QuickActionsHeader() {
+  return (
+    <div className="text-center mb-6">
+      <h2 className="text-xl font-semibold text-gray-900 mb-2">Quick Actions</h2>
+      <p className="text-gray-600">Everything you need to get started</p>
+    </div>
+  )
+}

@@ -1,7 +1,7 @@
 'use client'
 
 import { use } from 'react'
-import ChatView from '@/components/chat/ChatView'
+import PDFChatView from '@/components/pdfChat/PDFChatView'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 
 interface PageProps {
@@ -10,10 +10,10 @@ interface PageProps {
 
 export default function ChatPage({ params }: PageProps) {
   const { documentId } = use(params)
-
+  console.log(documentId)
   return (
     <ProtectedRoute>
-      <ChatView documentId={documentId} />
+      <PDFChatView documentId={documentId} />
     </ProtectedRoute>
   )
 }

@@ -1,5 +1,4 @@
-// hooks/chat-hooks.ts
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import ChatService from '@/core/ChatService'
 import VoiceService from '@/core/VoiceService'
 

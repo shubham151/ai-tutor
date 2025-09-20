@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Maximize2, Minimize2 } from 'lucide-react'
 import PDFViewer from '@/components/pdf/PDFViewer'
-import ChatInterface from './ChatInterface'
+import ChatInterface from '@/components/chat/ChatInterface'
 import Button from '@/components/ui/Button'
 import Alert from '@/components/ui/Alert'
 
@@ -29,11 +29,11 @@ interface Annotation {
   text?: string
 }
 
-interface ChatViewProps {
+interface PDFChatViewProps {
   documentId: string
 }
 
-const ChatView = ({ documentId }: ChatViewProps) => {
+const PDFChatView = ({ documentId }: PDFChatViewProps) => {
   const router = useRouter()
   const [document, setDocument] = useState<Document | null>(null)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
@@ -46,7 +46,6 @@ const ChatView = ({ documentId }: ChatViewProps) => {
 
   useEffect(() => {
     loadDocument()
-    loadAnnotations()
   }, [documentId])
 
   const loadDocument = async () => {
@@ -68,23 +67,6 @@ const ChatView = ({ documentId }: ChatViewProps) => {
       console.error('Document loading error:', err)
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const loadAnnotations = async () => {
-    try {
-      const response = await fetch(`/api/documents/${documentId}/annotations`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-      })
-
-      if (response.ok) {
-        const { annotations } = await response.json()
-        setAnnotations(annotations)
-      }
-    } catch (err) {
-      console.error('Annotations loading error:', err)
     }
   }
 
@@ -275,4 +257,4 @@ const ChatView = ({ documentId }: ChatViewProps) => {
   )
 }
 
-export default ChatView
+export default PDFChatView
