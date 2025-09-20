@@ -42,9 +42,7 @@ export function DocumentGrid({
     e.target.value = ''
   }
 
-  const triggerFileSelect = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+  const triggerFileSelect = () => {
     fileInputRef.current?.click()
   }
 
