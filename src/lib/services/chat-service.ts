@@ -1,4 +1,3 @@
-// lib/services/chat-service.ts
 import { PrismaClient } from '@prisma/client'
 import TutorService from '@/lib/ai/tutor-service'
 import { AIMessage } from '@/lib/ai/base-service'
@@ -94,14 +93,12 @@ async function getRecentMessages(chatSessionId: string, limit: number = 10): Pro
     orderBy: { createdAt: 'desc' },
     take: limit,
   })
-
   return convertToAIMessages(messages.reverse())
 }
 
 async function sendMessage(request: SendMessageRequest): Promise<SendMessageResponse> {
   const { documentId, userId, message, isVoice } = request
 
-  // Get document
   const document = await prisma.document.findFirst({
     where: { id: documentId, userId },
   })
@@ -110,16 +107,9 @@ async function sendMessage(request: SendMessageRequest): Promise<SendMessageResp
     throw new Error('Document not found')
   }
 
-  // Find or create chat session
   const chatSession = await findOrCreateChatSession(documentId, userId, message)
-
-  // Save user message
   await saveUserMessage(chatSession.id, message)
-
-  // Get recent conversation history
   const recentMessages = await getRecentMessages(chatSession.id)
-
-  // Generate AI response using tutor service
   const tutorResponse = await TutorService.generateResponse(message, {
     messages: recentMessages,
     document: {
@@ -130,7 +120,6 @@ async function sendMessage(request: SendMessageRequest): Promise<SendMessageResp
     },
   })
 
-  // Save AI response with metadata
   const assistantMessage = await saveAssistantMessage(chatSession.id, tutorResponse.content, {
     pageReference: tutorResponse.pageReference,
     annotations: tutorResponse.annotations,
