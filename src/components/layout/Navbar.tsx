@@ -1,10 +1,8 @@
-// components/layout/Navbar.tsx
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { Shield, User, LogOut, Settings, ChevronDown } from 'lucide-react'
-import Button from '@/components/ui/Button'
+import { User, LogOut, Settings, ChevronDown, GraduationCap } from 'lucide-react'
 
 interface NavbarProps {
   className?: string
@@ -44,10 +42,12 @@ const Navbar = ({ className = '' }: NavbarProps) => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <Shield className="w-5 h-5 text-white" />
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-macos-accent to-blue-600 rounded-lg flex items-center justify-center">
+                <GraduationCap className="w-6 h-6 text-white font-bold" strokeWidth={2.5} />
+              </div>
+              <h1 className="text-xl font-semibold text-macos-text font-sf">AI Tutor</h1>
             </div>
-            <h1 className="text-xl font-bold text-gray-900">AI Tutor</h1>
           </div>
 
           {/* User Menu */}

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthService from '@/core/AuthService'
-import TokenManager from '@/core/TokenManager'
 import { AuthState, AuthResponse } from '@/types/auth'
 
 function createInitialAuthState(): AuthState {
@@ -87,12 +86,12 @@ export function useAuth() {
       isLoading: false,
     })
 
-    router.push('/auth')
+    router.push('/')
   }, [updateState, router])
 
   const requireAuth = useCallback(() => {
     if (!state.isLoading && !state.isAuthenticated) {
-      router.push('/auth')
+      router.push('/')
     }
   }, [state.isLoading, state.isAuthenticated, router])
 

@@ -1,4 +1,3 @@
-// components/ui/Card.tsx
 import React from 'react'
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -50,7 +49,7 @@ export const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
     return (
       <div ref={ref} className={`text-center ${className}`} {...props}>
         {icon && (
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mx-auto mb-4 flex items-center justify-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-macos-accent to-blue-600 rounded-2xl mx-auto mb-4 flex items-center justify-center">
             {icon}
           </div>
         )}

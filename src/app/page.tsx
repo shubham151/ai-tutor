@@ -1,10 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { motion } from 'framer-motion' // normal import works now
+import { motion } from 'framer-motion'
 import Button from '@/components/ui/Button'
 import Card, { CardContent } from '@/components/ui/Card'
-import { BookOpen, MessageSquare, Mic, Zap } from 'lucide-react'
+import { BookOpen, GraduationCap, MessageSquare, Mic, Zap } from 'lucide-react'
 
 export default function HomePage() {
   return (
@@ -14,7 +14,9 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-macos-accent to-blue-600 rounded-lg"></div>
+              <div className="w-8 h-8 bg-gradient-to-br from-macos-accent to-blue-600 rounded-lg flex items-center justify-center">
+                <GraduationCap className="w-6 h-6 text-white font-bold" strokeWidth={2.5} />
+              </div>
               <h1 className="text-xl font-semibold text-macos-text font-sf">AI Tutor</h1>
             </div>
             <div className="flex items-center space-x-3">
@@ -144,6 +146,19 @@ export default function HomePage() {
             </CardContent>
           </Card>
         </motion.div>
+        {/* Footer Section */}
+        <footer className="mt-1 border-t border-white/20 bg-white/5 backdrop-blur-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="text-center space-y-2">
+              <p className="text-sm text-macos-textSecondary font-sf">
+                Powered by <span className="font-semibold text-macos-text">SPIDERMINES</span>
+              </p>
+              <p className="text-xs text-macos-textSecondary font-sf">
+                © {new Date().getFullYear()} AI Tutor. All rights reserved.
+              </p>
+            </div>
+          </div>
+        </footer>
       </main>
     </div>
   )

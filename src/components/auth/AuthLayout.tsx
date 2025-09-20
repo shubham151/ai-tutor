@@ -1,6 +1,5 @@
-// components/auth/AuthLayout.tsx
 import React from 'react'
-import { Shield } from 'lucide-react'
+import { GraduationCap } from 'lucide-react'
 import Card, { CardHeader, CardContent, CardFooter } from '@/components/ui/Card'
 
 export interface AuthLayoutProps {
@@ -27,7 +26,7 @@ const AuthLayout = ({ children, title, description, showFooter = true }: AuthLay
           <CardHeader
             title={title}
             description={description}
-            icon={<Shield className="w-8 h-8 text-white" />}
+            icon={<GraduationCap className="w-8 h-8 text-white font-bold" strokeWidth={2.5} />}
             className="mb-8"
           />
 
