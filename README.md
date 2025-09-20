@@ -29,7 +29,7 @@ It enables users to:
 
 ---
 
-## ✨ Core Features
+## Core Features
 
 ### Authentication
 
@@ -103,4 +103,4 @@ App runs at [http://localhost:3000](http://localhost:3000).
 
 ---
 
-⚡ **Note**: The `prisma/schema.prisma` file was not included in this repo snapshot. Copy contents from prisma.schema to under `/prisma/schema.prisma`.
+**Note**: The `prisma/schema.prisma` file was not included in this repo snapshot. Copy contents from prisma.schema to under `/prisma/schema.prisma`.
