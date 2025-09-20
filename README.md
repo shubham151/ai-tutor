@@ -1,5 +1,7 @@
 # AI Tutor with PDF Integration
 
+## Live Demo [https://ai-tutor-nine-plum.vercel.app/](https://ai-tutor-nine-plum.vercel.app/)
+
 ## Overview
 
 This project is an **AI Tutor web application** built with **Next.js 14 (App Router)**, **Prisma**, and a **PostgreSQL backend**.
